@@ -1,35 +1,30 @@
-# Closure Ledger
+# Closure ledger
 
-This folder holds items only, never analysis.
+One file that matters: `LEDGER.md`. It holds items only, never analysis.
 
 ## Files
 
-- `LEDGER.md` — one table, one row per open item, across all projects.
-- `RULES.md` — the tests the weekly pass applies.
-- `WEEKLY.md` — append-only log, one dated block per week.
-- `README.md` — this file.
+| File | What it is |
+|---|---|
+| `LEDGER.md` | Every open item, one row each, with a source you can check |
+| `RULES.md` | The tests the weekly pass applies |
+| `WEEKLY.md` | Append-only. One dated block per week |
+| `README.md` | This |
 
-## The two commands
+## Commands
 
-Run from Claude Code in this repository.
+`/weekly-pass` reads `LEDGER.md` and `RULES.md` and outputs, in order: items failing both tests worst first; a drafted message under 60 words for the top twelve; items with no named owner; items marked CLOSED with no closure line; and the Friday three. It then stops. It does not propose improvements to the ledger.
 
-`/weekly-pass`
-Reads `LEDGER.md` and `RULES.md` and prints, in order: items failing both tests worst first with days elapsed; a drafted message under 60 words for each; items whose owner is not a named person; items marked CLOSED with no closure line; the Friday three. It prints to the screen. Paste the output plus your three answers into a new dated block in `WEEKLY.md`.
+`/log-close <ID>` asks two questions, what closed it and on whose word, and whether it was ASK or ABSORB, writes the closure line, sets status CLOSED, and stops.
 
-`/log-close <ID>`
-Asks two questions — what closed it and on whose word, and whether it was ASK or ABSORB — then writes the closure line into that row, sets the status to CLOSED, and stops.
+Commands live in `.claude/commands/`, not in this folder.
 
-## Status values
+## How to use it
 
-- `OPEN` — raised, no ask sent yet.
-- `ASKED` — an ask has gone to the named owner.
-- `ROUTED` — handed to a different named owner or a different channel.
-- `RULED` — a decision was given, whatever the answer.
-- `CLOSED` — done, and carrying a closure line. Without the closure line it is not closed.
-- `DROPPED` — abandoned on purpose. No longer chased.
+Run `/weekly-pass` on a Friday. It takes about ten minutes. Send or delete every drafted message. Do not keep them.
 
-## Closure line
+The number that matters is not how many items close. It is the ratio of ASK to ABSORB in the closure lines. Absorbing an item closes the row and hides the gap.
 
-`Closed DD Mon by <name>, source: <where>, closed by ASK or by ABSORB.`
+## Seeding note
 
-ASK means someone else did it after you asked. ABSORB means you did the work yourself.
+The 88 rows in `LEDGER.md` were extracted from seven evidence packs dated 6 and 7 September 2026. Every row carries its source. Delete any row you know closed after the pack cut-off rather than marking it CLOSED, because you have no closure line for it and a false CLOSED is worse than a deleted row.

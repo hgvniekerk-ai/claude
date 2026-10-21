@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 tools/pe.py:*)",
+      "Read(./**)"
+    ],
+    "deny": [
+      "Bash(git push:*)"
+    ]
+  }
+}

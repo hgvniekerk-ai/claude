@@ -1,0 +1,11 @@
+# Raw client evidence stays on the PE's machine
+projects/*/evidence/*
+!projects/*/evidence/.gitkeep
+# Generated work is local until IT agrees a policy (decision D8)
+projects/*/work/*
+!projects/*/work/.gitkeep
+# Synthetic demo project is tracked so the walkthrough works
+!projects/example-synthetic-plant/work/*
+# Company skills are linked, never committed
+.claude/skills/s3-*
+__pycache__/

@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LUN FDN CVPSA Dashboard Prototype</title>
+<style>
+:root{
+  --bg:#f2f2f2; --card:#fff; --ink:#2b2b2b; --muted:#6b6b6b; --line:#e3e3e3;
+  --dark:#333; --teal:#45b8cc; --teal-l:#9fd9e4; --teal-border:#5cc3d3;
+  --red:#ef6464; --grey:#b3b3b3; --yellow:#f8d67a; --pa:#8f8f8f;
+  --ohf:#a8432c; --olf:#e39a52; --sum:#4a1f14; --onf:#6f8f74; --oof:#8a7fa8; --oocf:#2f6f9f;
+  --fod:#d0457b; --fodsize:#7a3fa0;
+  --anno:#2563eb;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Helvetica Neue",Arial,Helvetica,sans-serif;font-size:13px}
+a{color:var(--teal)}
+/* ---------- prototype chrome (not part of dashboard) ---------- */
+.proto-bar{position:relative;z-index:20;background:#1e1e1e;color:#ddd;display:flex;align-items:center;gap:6px;padding:6px 14px;flex-wrap:wrap}
+.proto-bar .tag{font-size:11px;background:#444;border-radius:3px;padding:2px 6px;color:#fff;margin-right:8px}
+.proto-bar button{background:#2d2d2d;color:#ddd;border:1px solid #444;border-radius:3px;padding:5px 10px;font-size:12px;cursor:pointer}
+.proto-bar button.on{background:var(--teal);color:#111;border-color:var(--teal);font-weight:700}
+.proto-bar button.new{position:relative}
+.proto-bar button.new::after{content:"NEW";font-size:9px;background:#e39a52;color:#111;border-radius:2px;padding:0 3px;margin-left:5px;font-weight:700}
+.proto-bar button.chg::after{content:"REPLACED";font-size:9px;background:#d0457b;color:#fff;border-radius:2px;padding:0 3px;margin-left:5px;font-weight:700}
+.proto-bar .sp{flex:1}
+.proto-bar label{font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.proto-banner{background:#fff7e0;border-bottom:1px solid #ecd9a0;color:#5a4a1a;font-size:12px;padding:6px 16px}
+/* ---------- dashboard page ---------- */
+.page{display:none;max-width:1600px;margin:0 auto;padding:14px 16px 40px}
+.page.active{display:block}
+.ph{display:flex;justify-content:space-between;align-items:baseline}
+.ph h1{font-size:22px;margin:4px 0 0;font-weight:700}
+.ph .pg{font-size:20px;font-weight:700}
+.ph2{font-size:16px;font-weight:700;margin:14px 0 8px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.chip{background:#e6e6e6;border-radius:3px;padding:3px 8px;font-size:12px}
+.chip.btn{background:#fff;border:1px solid #ccc}
+.chips .reset{margin-left:auto;color:#2a6fb0;font-size:12px}
+.row{display:grid;gap:10px;margin-bottom:10px}
+.c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:repeat(3,1fr)}.c4{grid-template-columns:repeat(4,1fr)}.c5{grid-template-columns:repeat(5,1fr)}.c6{grid-template-columns:repeat(6,1fr)}
+.c-title{grid-template-columns:3fr 1fr}
+.c-sec{grid-template-columns:2fr 1fr}
+.c-73{grid-template-columns:7fr 3fr}
+.card{background:var(--card);border-radius:4px;padding:12px 14px;position:relative}
+.titlecard{border:1.5px solid var(--teal-border);height:112px;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;background:#fff;border-radius:4px}
+.logo{border:1.5px solid var(--teal-border);height:112px;display:flex;align-items:center;justify-content:center;gap:12px;background:#fff;border-radius:4px}
+.logo .ring{width:62px;height:62px;border-radius:50%;border:7px solid #4a4f57;border-right-color:var(--teal);position:relative}
+.logo .ring::after{content:"";position:absolute;inset:9px;border-radius:50%;border:6px solid var(--teal)}
+.logo .wm{font-size:38px;font-weight:700;color:#4a4f57;line-height:1}
+.logo .wm small{display:block;font-size:11px;font-weight:400;color:#777}
+.sec{background:var(--dark);color:#fff;border-radius:4px;height:48px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:700}
+.ctl{background:var(--dark);color:#fff;border-radius:4px;height:48px;display:flex;align-items:center;gap:12px;padding:0 10px;font-weight:700;font-size:13px}
+.ctl .lab{min-width:70px;text-align:center}
+.sel{flex:1;background:#2a2a2a;border:1px solid #555;border-radius:3px;padding:6px 10px;font-weight:400;font-style:italic;color:#eee;display:flex;justify-content:space-between}
+.sel.lock::after{content:"locked";font-size:10px;color:#aaa;font-style:normal}
+.sel.dd::after{content:"\25BE";font-style:normal}
+.note{background:#fff;border-radius:4px;padding:12px 16px;text-align:center;color:#444}
+.note.left{text-align:left;border-left:4px solid #ddd}
+.note b.t{color:var(--teal)} .note b.r{color:var(--red)}
+.ct{font-weight:700;text-align:center;font-size:14px}
+.cs{text-align:center;font-size:11px;color:#555;margin-bottom:6px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:12px;margin:2px 0 4px}
+.legend b{font-weight:700}
+.sw{display:inline-block;width:11px;height:11px;margin-right:4px;vertical-align:-1px;border-radius:1px}
+.sw.ln{height:3px;width:16px;vertical-align:3px}
+.sw.dash{height:0;width:16px;border-top:2px dashed #333;vertical-align:3px;border-radius:0}
+.sw.hatch{background:repeating-linear-gradient(45deg,#fff 0 3px,#bbb 3px 5px);border:1px solid #bbb}
+svg.ch{width:100%;display:block}
+.counter{text-align:center}
+.counter .v{font-size:32px;font-weight:700;color:var(--teal);margin:4px 0 0}
+.counter .v.na{color:#c4c4c4}
+.counter .d{font-size:13px;color:#888}
+.counter .d .pill{background:#eee;border-radius:3px;padding:1px 5px}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:700}
+.kv .val{color:#c4c4c4;font-size:16px}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+table.t th{background:var(--dark);color:#fff;text-align:left;padding:9px 8px;font-weight:700}
+table.t th.cn,table.t td.cn{text-align:center}
+table.t td{padding:7px 8px;border-bottom:1px solid #eee}
+table.t td.null{background:#e6e6e6;color:#777;font-style:italic;text-align:center}
+table.t td.empty{color:#888;font-style:italic;text-align:center;padding:16px}
+table.t tr:nth-child(even) td{background-image:linear-gradient(rgba(0,0,0,.02),rgba(0,0,0,.02))}
+.i{display:inline-block;width:11px;height:11px;border:1px solid #bbb;border-radius:50%;font-size:8px;text-align:center;line-height:9px;color:#bbb;margin-right:4px;font-style:normal}
+/* design annotations */
+.dn{border:1.5px dashed var(--anno);background:#eef4ff;color:#1e3a8a;border-radius:4px;padding:8px 12px;font-size:12px;margin:0 0 10px}
+.dn b{color:#1e40af}
+.dn code,.src code,.map code{font-family:Consolas,Menlo,monospace;font-size:11px;background:rgba(0,0,0,.05);padding:0 3px;border-radius:2px}
+.src{font-size:11px;color:#555;margin-top:6px;border-top:1px dashed #ddd;padding-top:5px}
+body.noanno .dn,body.noanno .src{display:none}
+.badge{display:inline-block;font-size:10px;font-weight:700;border-radius:3px;padding:1px 5px;margin-left:3px;vertical-align:1px;font-style:normal}
+.b3{background:#d7f0e0;color:#1d6b3a}.b2{background:#fff0c9;color:#7a5a00}.bn{background:#fde0e0;color:#9b1c1c}.bu{background:#e6e6e6;color:#555}
+/* imagery */
+.imgs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.frame{border:1px solid #ddd;border-radius:3px;overflow:hidden;background:#fafafa}
+.frame .ph{height:150px;background:repeating-linear-gradient(135deg,#f1f1f1 0 10px,#e9e9e9 10px 20px);display:flex;align-items:center;justify-content:center;flex-direction:column;color:#888;font-size:12px;text-align:center;padding:8px}
+.frame .ph svg{margin-bottom:6px}
+.frame .cap{font-size:11px;padding:6px 8px;line-height:1.5}
+.frame .cap b{display:block;font-size:12px}
+.frame .cap span{color:#999}
+/* glossary */
+.gl h3{font-size:17px;margin:6px 0 2px}
+.gl .lead{font-style:italic;font-size:12px;color:#555;margin:0 0 8px}
+.gl ul{margin:4px 0 8px 18px;padding:0;line-height:1.65}
+.gl p{line-height:1.55;margin:6px 0}
+.gl h2{text-align:center;font-size:20px;margin:10px 0}
+/* mapping */
+table.map{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
+table.map th{background:var(--dark);color:#fff;text-align:left;padding:8px}
+table.map td{padding:7px 8px;border-bottom:1px solid #eee;vertical-align:top;line-height:1.45}
+table.map td:first-child{font-weight:700;white-space:nowrap}
+.miss{line-height:1.6}
+.miss li{margin-bottom:6px}
+.callout-new{border-left:4px solid var(--olf)}
+.callout-fod{border-left:4px solid var(--fod)}
+.stack-gap{height:4px}
+</style>
+</head>
+<body>
+
+<div class="proto-bar" id="nav">
+  <span class="tag">DESIGN PROTOTYPE · LUN0004 · no FDN data loaded</span>
+  <button data-p="p1">1 Sensor Health</button>
+  <button data-p="p2">2 PSD KPI Trends</button>
+  <button data-p="p3">3 PSD Period Comparison</button>
+  <button data-p="p4" class="new">4 Ore Oxidation Analysis</button>
+  <button data-p="p5" class="chg">5 Foreign Object Detection</button>
+  <button data-p="p6">6 Glossary &amp; Guide</button>
+  <span class="sp"></span>
+  <button data-p="p7">Annex: Page-to-tag map &amp; missing inputs</button>
+  <label><input type="checkbox" id="anno" checked> Design annotations</label>
+</div>
+<div class="proto-banner">Visual and functional reference for S3I / Databricks implementation, adapted from the Quellaveco CVPSA Health and KPI Dashboard. Every chart frame is empty by design: no Lundin values, Quellaveco values, images or time series are shown. Blue dashed boxes are design annotations, not dashboard content (toggle top right).</div>
+
+<!-- =====================================================================
+     PAGE 1  SENSOR HEALTH OVERVIEW
+===================================================================== -->
+<section class="page" id="p1">
+  <div class="ph"><h1>LUN FDN CVPSA Health and KPI Dashboard</h1><div class="pg">Page 1 of 6</div></div>
+  <div class="ph2">Sensor Health Overview</div>
+  <div class="chips"><span class="chip btn">&#9881; Global filters</span><span class="chip">&#127760; Date Range Filter: Last 7 days</span><span class="chip">Site time: UTC-05:00</span></div>
+  <div class="row c-title"><div class="titlecard">Sensor Health Overview</div><div class="logo" data-logo></div></div>
+
+  <div class="dn"><b>Adaptation:</b> Quellaveco plots one bar per sensor. FDN has one sensor, so the x-axis becomes <b>local day</b> within the date range. Same states, same colours, same two-chart split. A third row adds <b>time coverage</b> (share of expected samples actually received) so a day with no data reads as missing, never as healthy or zero.</div>
+
+  <div class="row c-sec"><div class="sec">Sensor Health and Comms States</div><div class="ctl"><span class="lab">Sensor</span><span class="sel lock">lun_fdn_cvpsa_6140_cvy_0001</span></div></div>
+  <div class="note"><b class="t">Sensor Healthy</b>: Camera online, and image passed all quality checks. | <b class="r">Sensor Unhealthy</b>: Camera comms or image fault, split by cause in the second chart. | <b style="color:#888">No Data</b>: no reading received; shown as a gap, not as 0%.</div>
+  <div class="row c2" style="margin-top:10px">
+    <div class="card" data-chart='{"title":"Health State per Day","sub":"Last 7 days","legend":[["State:"],["Sensor Unhealthy","var(--red)"],["Sensor Healthy","var(--teal-l)"],["No Data","hatch"]],"y":{"label":"Fraction of time [%]","ticks":["0%","50%","100%"]},"x":{"label":"Local day (UTC-05:00)","cats":7},"msg":"Stacked 100% bar per local day","src":"<code>state_all_ok</code><span class=\"badge b3\">V3</span> <code>image_health_all_ok</code><span class=\"badge b3\">V3</span> camera comms<span class=\"badge b2\">V2 only</span>"}'></div>
+    <div class="card" data-chart='{"title":"Unhealthy State Breakdown per Day","sub":"Last 7 days","legend":[["State:"],["Camera Comms Lost","var(--grey)"],["Image Unhealthy","var(--yellow)"]],"y":{"label":"Fraction of time [%]","ticks":["0%","5%","10%"]},"x":{"label":"Local day (UTC-05:00)","cats":7},"msg":"Stacked bar per local day, auto-scaled","src":"camera comms<span class=\"badge b2\">V2: PSA_state_camera</span> <code>image_health_all_ok</code><span class=\"badge b3\">V3</span>"}'></div>
+  </div>
+  <div class="row c2">
+    <div class="card" data-chart='{"title":"Data Time Coverage per Day","sub":"Received samples as % of expected samples, Last 7 days","legend":[["Coverage:"],["Received","var(--teal-l)"],["Not received","hatch"]],"y":{"label":"Coverage [%]","ticks":["0%","50%","100%"]},"x":{"label":"Local day (UTC-05:00)","cats":7},"msg":"Requires expected sample cadence","src":"Sensing timestamp per record; expected cadence <span class=\"badge bn\">not documented</span>"}'></div>
+    <div class="card" data-chart='{"title":"Measurement Output Availability per Day","sub":"Share of healthy time with each output reported, Last 7 days","legend":[["Output:"],["PSD (P80)","var(--teal)"],["Oxidation (OOCF)","var(--oocf)"],["FOD","var(--fod)"]],"y":{"label":"Reported [%]","ticks":["0%","50%","100%"]},"x":{"label":"Local day (UTC-05:00)","cats":7},"kind":"gbar","msg":"Grouped bar per day: one bar per output","src":"<code>psd_percentiles_2</code><span class=\"badge b3\">V3</span> OOCF<span class=\"badge bn\">not in tag list</span> FOD tags<span class=\"badge b3\">V3</span>"}'></div>
+  </div>
+  <div class="dn"><b>Why the second row:</b> the sensor can be healthy while one analytical output is not reporting (for example, the oxidation model not yet producing OOCF). This chart isolates that case before a user reads pages 2, 4 and 5.</div>
+
+  <div class="row c-73"><div class="sec">Latest Sensor Health Status</div><div class="card kv"><span>Latest reporting time</span><span class="val">no data (UTC-05:00)</span></div></div>
+  <div class="note">Latest sensor data at refresh, independent of the date range filter. <b class="t">Latest reporting time</b> is the newest reading from this sensor.</div>
+  <div class="card" style="margin-top:10px">
+    <div class="ct">Sensor Health Summary</div><div class="cs">Latest reporting time</div>
+    <table class="t"><thead><tr><th>Sensor</th><th class="cn"><i class="i">i</i>Camera Comms</th><th class="cn"><i class="i">i</i>Run Signal OK</th><th class="cn"><i class="i">i</i>State All OK</th><th class="cn"><i class="i">i</i>Image Health OK</th><th class="cn"><i class="i">i</i>OPC Heartbeat</th><th class="cn"><i class="i">i</i>PSD Reporting</th><th class="cn"><i class="i">i</i>Oxidation Reporting</th><th class="cn"><i class="i">i</i>FOD Reporting</th><th><i class="i">i</i>Last Reported</th></tr></thead>
+    <tbody><tr><td>lun_fdn_cvpsa_6140_cvy_0001</td><td class="null">null</td><td class="null">null</td><td class="null">null</td><td class="null">null</td><td class="null">null</td><td class="null">null</td><td class="null">null</td><td class="null">null</td><td class="null">no data</td></tr></tbody></table>
+    <div class="src">Columns 2 to 5 as Quellaveco. Added: OPC Heartbeat (<code>MonotonicIncreasing</code><span class="badge b3">V3</span>, Online if incremented within the last N s), and one reporting flag per analytical output (latest non-null age below a staleness limit). Run Signal OK depends on <code>run_signal_all_ok</code><span class="badge b2">V2 only</span>; drop the column if FDN does not publish it.</div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PAGE 2  PSD KPI TRENDS
+===================================================================== -->
+<section class="page" id="p2">
+  <div class="ph"><h1>LUN FDN CVPSA Health and KPI Dashboard</h1><div class="pg">Page 2 of 6</div></div>
+  <div class="ph2">PSD KPI Trends</div>
+  <div class="chips"><span class="chip btn">&#9881; Global filters</span><span class="chip">&#127760; Date Range Filter: Last 7 days</span></div>
+  <div class="row c-title"><div class="titlecard">PSD KPI Trends</div><div class="logo" data-logo></div></div>
+  <div class="dn"><b>Adaptation:</b> metrics, units, chart types and order are unchanged. With one sensor, the summary table lists <b>one row per local day plus a range average row</b> (Quellaveco: one row per sensor), and the S-curve shows <b>one curve per complete local day</b> (Quellaveco: one per sensor). Trend and distribution charts carry a single series in the sensor colour.</div>
+  <div class="sec" style="margin-bottom:10px">PSD Summary and S-curve</div>
+  <div class="card">
+    <div class="ct">Sensor PSD Summary (Averaged)</div><div class="cs">Last 7 days, lun_fdn_cvpsa_6140_cvy_0001</div>
+    <table class="t"><thead><tr><th>Local day</th><th class="cn">Avg Top Size (mm) &#9662;</th><th class="cn">P80</th><th class="cn">P50</th><th class="cn">P20</th><th class="cn">Valid coverage</th></tr></thead>
+    <tbody><tr><td><b>Range average</b></td><td class="null">null</td><td class="null">null</td><td class="null">null</td><td class="null">null</td><td class="null">null</td></tr>
+    <tr><td colspan="6" class="empty">One row per local day in the selected range. No LUN0004 data loaded.</td></tr></tbody></table>
+    <div class="src"><code>psd_largest_particle_width</code> (Top Size) <code>psd_percentiles_2/1/0</code> (P80/P50/P20, labels from <code>psd_percentile_value_0..2</code> = 20/50/80) <span class="badge b3">V3</span>. Added "Valid coverage" column so a low-coverage day is visible before its average is trusted.</div>
+  </div>
+  <div class="note left" style="margin:10px 0"><b>Null values</b>: A null in Top Size, P80, P50, or P20 means the sensor produced no reading for that metric over the selected period. Null is never plotted as zero.</div>
+  <div class="card" data-chart='{"title":"S-Curve (Cumulative Passing)","sub":"Last 7 days, one curve per complete local day","legend":[["Day:"],["D-6 … D0 (sequential teal ramp, newest darkest)","var(--teal)","ln"]],"y":{"label":"Cumulative Fraction Passing [%]","ticks":["0%","20%","40%","60%","80%","100%"]},"x":{"label":"Passing Bin Size (mm), log scale","ticks":["1","2.8","8","22.4","63","180","500"]},"w":1400,"h":380,"msg":"Bin edges from tag list configuration; curves await data","src":"<code>psd_bin_0..19</code> (1 to 710 mm, configured) and <code>psd_sccfp_0..19</code> <span class=\"badge b3\">V3</span>"}'></div>
+  <div class="note left" style="margin:10px 0"><b>Daily basis</b>: This chart uses daily aggregated data, unlike the trend and distribution charts, which use minute-level data. A day appears only once a full local day of data exists.</div>
+  <div class="row c-sec"><div class="sec">PSD Trends and Distributions</div><div class="ctl"><span class="lab">Sensor</span><span class="sel lock">lun_fdn_cvpsa_6140_cvy_0001</span></div></div>
+  <div class="row c2" id="p2grid"></div>
+</section>
+
+<!-- =====================================================================
+     PAGE 3  PSD PERIOD COMPARISON
+===================================================================== -->
+<section class="page" id="p3">
+  <div class="ph"><h1>LUN FDN CVPSA Health and KPI Dashboard</h1><div class="pg">Page 3 of 6</div></div>
+  <div class="ph2">PSD Period Comparison</div>
+  <div class="chips"><span class="chip btn">&#9881; Global filters</span><span class="chip">&#127760; Date Range Filter: Last 7 days</span><span class="chip">Sensor: lun_fdn_cvpsa_6140_cvy_0001</span><span class="chip">PSD Metric: P80</span><span class="chip">Period A: Last week</span><span class="chip">Period B: This week</span><a class="reset">Reset all to default</a></div>
+  <div class="row c-title"><div class="titlecard">PSD Period Comparison</div><div class="logo" data-logo></div></div>
+  <div class="sec" style="margin-bottom:10px">Compare PSD across two time periods</div>
+  <div class="row c4" data-counters='[["P20 Comparison (mm)","Period B (recent) vs Period A (baseline)"],["P50 Comparison (mm)","Period B (recent) vs Period A (baseline)"],["P80 Comparison (mm)","Period B (recent) vs Period A (baseline)"],["Top Size Comparison (mm)","Period B (recent) vs Period A (baseline)"]]'></div>
+  <div class="note">Select <b>two date ranges (<span style="color:#888">Period A: baseline</span> vs <span style="color:var(--teal)">Period B: comparison</span>)</b> and a <b>PSD metric</b> (P20, P50, P80, or Top Size) to compare.</div>
+  <div class="row c4" style="margin-top:10px">
+    <div class="ctl"><span class="lab">Period A</span><span class="sel">Last week</span></div>
+    <div class="ctl"><span class="lab">Period B</span><span class="sel">This week</span></div>
+    <div class="ctl"><span class="lab">Sensor</span><span class="sel lock">lun_fdn_cvpsa_6140_cvy_0001</span></div>
+    <div class="ctl"><span class="lab">PSD Metric</span><span class="sel dd">P80</span></div>
+  </div>
+  <div class="row c2">
+    <div class="card" data-chart='{"title":"Average PSD Comparison","sub":"Period A vs Period B","legend":[["Period:"],["Period A","var(--pa)"],["Period B","var(--teal-l)"]],"y":{"label":"Average particle size (mm)"},"x":{"label":"Selected PSD metric","cats":1},"kind":"pair","msg":"Two bars: Period A, Period B","src":"Selected metric tag from page 2"}'></div>
+    <div class="card" data-chart='{"title":"PSD Distribution Comparison","sub":"Period A vs Period B","legend":[["Period:"],["Period A","var(--pa)"],["Period B","var(--teal-l)"]],"y":{"label":"Frequency (normalised per period)"},"x":{"label":"Particle Size (mm)"},"msg":"Overlaid area distributions","src":"Design change: normalise each period so unequal period lengths compare by shape, matching the page 2 convention"}'></div>
+  </div>
+
+  <div class="dn"><b>Route to oxidation:</b> the same Period A and Period B selectors drive a second block below, so PSD and oxidation shifts are read over identical time windows. The PSD block above is unchanged from Quellaveco. The button opens page 4 with both periods pre-applied.</div>
+  <div class="row c-sec"><div class="sec">Oxidation over the same periods</div><div class="ctl" style="justify-content:center"><span style="background:var(--teal);color:#111;border-radius:3px;padding:6px 12px">Open in Ore Oxidation Analysis &#8594;</span></div></div>
+  <div class="note">Uses <b>qualified samples only</b> (OOCF &#8805; 0.3, sensor healthy). Fractions are dimensionless (0 to 1) colour-classification outputs, not assay results. Each counter shows the qualified coverage of both periods so an unequal basis is visible.</div>
+  <div class="row c4" style="margin-top:10px" data-counters='[["OHF + OLF (apparent oxidised)","Period B vs Period A, qualified mean","frac"],["OHF","Period B vs Period A, qualified mean","frac"],["OLF","Period B vs Period A, qualified mean","frac"],["Qualified coverage (%)","Period B vs Period A","pct"]]'></div>
+  <div class="row c2">
+    <div class="card" data-chart='{"title":"Oxidation Class Fractions by Period","sub":"Qualified mean, Period A vs Period B","legend":[["Period:"],["Period A","var(--pa)"],["Period B","var(--teal-l)"]],"y":{"label":"Fraction [-]","ticks":["0","0.25","0.5","0.75","1"]},"x":{"label":"Class","labels":["OHF","OLF","OHF+OLF","ONF","OOF"]},"kind":"pairs","msg":"Paired bars per class","src":"OHF, OLF, ONF, OOF <span class=\"badge bn\">not in tag list</span>"}'></div>
+    <div class="card" data-chart='{"title":"OHF + OLF Distribution Comparison","sub":"Period A vs Period B, qualified samples, normalised","legend":[["Period:"],["Period A","var(--pa)"],["Period B","var(--teal-l)"]],"y":{"label":"Frequency (normalised per period)"},"x":{"label":"OHF + OLF [-]","ticks":["0","0.2","0.4","0.6","0.8","1"]},"msg":"Overlaid area distributions","src":"Derived: OHF + OLF per sample"}'></div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PAGE 4  ORE OXIDATION ANALYSIS (NEW)
+===================================================================== -->
+<section class="page" id="p4">
+  <div class="ph"><h1>LUN FDN CVPSA Health and KPI Dashboard</h1><div class="pg">Page 4 of 6</div></div>
+  <div class="ph2">Ore Oxidation Analysis</div>
+  <div class="chips"><span class="chip btn">&#9881; Global filters</span><span class="chip">&#127760; Date Range Filter: Last 7 days</span><span class="chip">Qualification: OOCF &#8805; 0.3</span><span class="chip">Condition: Sensor healthy</span><span class="chip">Drill-down day: none</span><a class="reset">Reset all to default</a></div>
+  <div class="row c-title"><div class="titlecard">Ore Oxidation Analysis</div><div class="logo" data-logo></div></div>
+
+  <div class="dn callout-new"><b>NEW page.</b> Reading order: (1) Is there enough qualified data? (2) What did the oxidation classes do, by day then by hour? (3) How does that line up with the size of the same material (P80, Top Size)? (4) What did the camera actually see? Every chart uses the same date range and the same qualification rule, and every aggregate excludes non-qualified samples rather than treating them as zero.</div>
+
+  <div class="row c-sec"><div class="sec">Oxidation Overview</div><div class="ctl"><span class="lab">Sensor</span><span class="sel lock">lun_fdn_cvpsa_6140_cvy_0001</span></div></div>
+  <div class="note"><b>OHF, OLF, ONF and OOF</b> are dimensionless fractions (0 to 1) from the CVPSA ore-colour classifier. <b style="color:var(--ohf)">OHF + OLF</b> is the <b>apparent oxidised fraction</b> of the visible ore surface. These are image-based colour classifications, <b>not laboratory oxidation assays</b>. <b style="color:var(--oocf)">OOCF</b> qualifies each sample: only samples with <b>OOCF &#8805; 0.3</b> are used in averages.</div>
+  <div class="row c6" style="margin-top:10px" data-counters='[["OHF + OLF","Apparent oxidised, qualified mean","frac","sum"],["OHF","Qualified mean","frac"],["OLF","Qualified mean","frac"],["ONF","Qualified mean","frac"],["OOF","Qualified mean","frac"],["Qualified coverage","% of expected samples used","pct"]]'></div>
+
+  <div class="row c-73"><div class="sec">Data Coverage and Exclusions</div><div class="ctl"><span class="lab">Show</span><span class="sel dd">Daily</span></div></div>
+  <div class="row c2">
+    <div class="card" data-chart='{"title":"Sample Status per Day","sub":"Share of expected samples, Last 7 days","legend":[["Status:"],["Qualified (used)","var(--teal-l)"],["Excluded: OOCF < 0.3","var(--oocf)"],["Excluded: sensor unhealthy","var(--red)"],["No data","hatch"]],"y":{"label":"Share of expected samples [%]","ticks":["0%","50%","100%"]},"x":{"label":"Local day (UTC-05:00)","cats":7},"msg":"Stacked 100% bar per local day","src":"OOCF<span class=\"badge bn\">not in tag list</span> <code>state_all_ok</code> <code>image_health_all_ok</code><span class=\"badge b3\">V3</span> expected cadence<span class=\"badge bn\">not documented</span>"}'></div>
+    <div class="card" data-chart='{"title":"OOCF Trend","sub":"Last 7 days, with qualification threshold","legend":[["Series:"],["OOCF","var(--oocf)","ln"],["Threshold 0.3","dash"],["Below threshold (excluded)","rgba(47,111,159,.15)"]],"y":{"label":"OOCF [-]","ticks":["0","0.2","0.4","0.6","0.8","1"]},"x":{"label":"Local time (UTC-05:00)"},"hline":0.3,"msg":"Line breaks at missing data; band below 0.3 shaded","src":"OOCF<span class=\"badge bn\">not in tag list</span>. Threshold 0.3 from LUN0004 brief; inequality (&#8805;) to confirm"}'></div>
+  </div>
+
+  <div class="row c-73"><div class="sec">Oxidation Classes: Daily Overview</div><div class="ctl"><span class="lab">Aggregation</span><span class="sel dd">Daily qualified mean</span></div></div>
+  <div class="row c2">
+    <div class="card" data-chart='{"title":"Apparent Oxidised Fraction (OHF + OLF)","sub":"Daily qualified mean, Last 7 days","legend":[["Series:"],["OHF","var(--ohf)"],["OLF","var(--olf)"],["OHF + OLF","var(--sum)","ln"]],"y":{"label":"Fraction [-]","ticks":["0","0.25","0.5","0.75","1"]},"x":{"label":"Local day (UTC-05:00)","cats":7},"kind":"stack","msg":"OHF and OLF stacked; total marked by line","src":"OHF, OLF <span class=\"badge bn\">not in tag list</span>. Day with no qualified samples: empty slot labelled \"no qualified data\""}'></div>
+    <div class="card" data-chart='{"title":"Supporting Classes (ONF, OOF)","sub":"Daily qualified mean, Last 7 days","legend":[["Series:"],["ONF","var(--onf)","ln"],["OOF","var(--oof)","ln"]],"y":{"label":"Fraction [-]","ticks":["0","0.25","0.5","0.75","1"]},"x":{"label":"Local day (UTC-05:00)","cats":7},"msg":"Two lines, same y scale as the left chart","src":"ONF, OOF <span class=\"badge bn\">not in tag list</span>. Kept separate so the oxidised sum is not crowded"}'></div>
+  </div>
+  <div class="dn"><b>Why stacked bars for OHF/OLF:</b> the sum is the headline quantity, and the stack shows its composition without a third line. ONF and OOF sit on a separate chart with an identical y-axis so magnitudes compare directly. Daily values are qualified means; the coverage chart above states how many samples each day rests on.</div>
+
+  <div class="row c-73"><div class="sec">Hourly Drill-down</div><div class="ctl"><span class="lab">Day</span><span class="sel dd">Click a day in the heatmap</span></div></div>
+  <div class="row c2">
+    <div class="card" data-heat='{"title":"OHF + OLF by Hour of Day","sub":"Hourly qualified mean, Last 7 days. Click a row to drill down.","rows":7,"src":"Cell = hourly qualified mean of OHF + OLF. Grey = hour excluded (no qualified samples). Hatched = no data received."}'></div>
+    <div class="card" data-chart='{"title":"Selected Day: Hourly Oxidation Classes","sub":"Hourly qualified mean, selected local day","legend":[["Series:"],["OHF","var(--ohf)"],["OLF","var(--olf)"],["OHF + OLF","var(--sum)","ln"],["ONF","var(--onf)","ln"],["OOF","var(--oof)","ln"]],"y":{"label":"Fraction [-]","ticks":["0","0.25","0.5","0.75","1"]},"x":{"label":"Hour (UTC-05:00)","ticks":["00","03","06","09","12","15","18","21","24"]},"kind":"stack24","msg":"Select a day in the heatmap","src":"Bars hollow where hourly qualified coverage is below the minimum (to define, e.g. 50%)"}'></div>
+  </div>
+
+  <div class="row c-73"><div class="sec">Oxidation in PSD Context</div><div class="ctl"><span class="lab">PSD Metric</span><span class="sel dd">P80</span></div></div>
+  <div class="note">Time-aligned view of the <b>same material</b>: the oxidation classifier and the size measurement come from the same camera and belt. Panels share one time axis and one hover cursor. Alignment shows <b>co-occurrence only</b>; it does not establish that oxidation changes size or the reverse.</div>
+  <div class="row" style="grid-template-columns:2fr 1fr;margin-top:10px">
+    <div class="card">
+      <div class="ct">Aligned Oxidation, Size and Data Quality</div><div class="cs">Hourly, Last 7 days (selected day when drilled down). Shared x-axis and cursor.</div>
+      <div data-mini='{"label":"OHF + OLF [-]","ticks":["0","0.5","1"],"color":"var(--sum)","name":"OHF + OLF (qualified)"}'></div>
+      <div data-mini='{"label":"P80 (mm)","color":"var(--teal)","name":"P80 (selected PSD metric)"}'></div>
+      <div data-mini='{"label":"Top Size (mm)","color":"#2d7f8f","name":"Top Size"}'></div>
+      <div data-mini='{"label":"OOCF [-]","ticks":["0","0.5","1"],"color":"var(--oocf)","name":"OOCF","hline":0.3}'></div>
+      <div data-strip='1'></div>
+      <div class="src">OHF, OLF, OOCF <span class="badge bn">not in tag list</span> <code>psd_percentiles_2</code> <code>psd_largest_particle_width</code> <code>state_all_ok</code> <code>image_health_all_ok</code> <span class="badge b3">V3</span>. Hourly resample on a common local-time grid; empty hours stay empty in every panel.</div>
+    </div>
+    <div class="card" data-chart='{"title":"OHF + OLF vs P80","sub":"One point per qualified hour, Last 7 days","legend":[["Points:"],["Qualified hour","var(--sum)"],["Selected day","var(--olf)"]],"y":{"label":"OHF + OLF [-]","ticks":["0","0.25","0.5","0.75","1"]},"x":{"label":"P80 (mm), hourly mean"},"w":440,"h":470,"msg":"Scatter of hourly pairs","note":"Descriptive association only. No fitted line or correlation coefficient until a sample-count rule is agreed.","src":"Same hourly table as the aligned view"}'></div>
+  </div>
+
+  <div class="row c-73"><div class="sec">Representative Camera Imagery</div><div class="ctl"><span class="lab">Hour</span><span class="sel dd">Click a heatmap cell or aligned-chart point</span></div></div>
+  <div class="note">Frames from the selected hour, each shown with the measurements recorded at that frame's timestamp. Selection rule: the qualified frames closest to the hourly <b>minimum</b>, <b>median</b> and <b>maximum</b> of OHF + OLF, plus the frame with the <b>lowest OOCF</b> to show what exclusion looks like.</div>
+  <div class="card" style="margin-top:10px">
+    <div class="imgs" id="imgs"></div>
+    <div class="src">Image store path, frame timestamp key and retention <span class="badge bn">not documented</span>. If images are unavailable the tiles show "Image not available" and the measurement captions remain; images are never substituted from other sites or times.</div>
+  </div>
+
+  <div class="card" style="margin-top:10px">
+    <div class="ct">Hourly Oxidation Detail</div><div class="cs">Selected day, one row per hour. Excluded hours are listed, not hidden.</div>
+    <table class="t"><thead><tr><th>Hour (UTC-05:00)</th><th class="cn">OHF</th><th class="cn">OLF</th><th class="cn">OHF + OLF</th><th class="cn">ONF</th><th class="cn">OOF</th><th class="cn">Mean OOCF</th><th class="cn">Qualified samples</th><th class="cn">P80 (mm)</th><th class="cn">Top Size (mm)</th><th class="cn">Status</th></tr></thead>
+    <tbody><tr><td colspan="11" class="empty">Select a day. Status values: Qualified · Excluded: OOCF &lt; 0.3 · Excluded: sensor unhealthy · No data. Excluded rows show measured values greyed and are not used in daily means.</td></tr></tbody></table>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PAGE 5  FOREIGN OBJECT DETECTION (replaces Oversize Events)
+===================================================================== -->
+<section class="page" id="p5">
+  <div class="ph"><h1>LUN FDN CVPSA Health and KPI Dashboard</h1><div class="pg">Page 5 of 6</div></div>
+  <div class="ph2">Foreign Object Detection</div>
+  <div class="chips"><span class="chip btn">&#9881; Global filters</span><span class="chip">&#127760; Date Range Filter: Last 7 days</span><span class="chip">Condition: Sensor healthy</span></div>
+  <div class="row c-title"><div class="titlecard">Foreign Object Detection</div><div class="logo" data-logo></div></div>
+
+  <div class="dn callout-fod"><b>Replaces Quellaveco "Oversize Events".</b> Layout is kept (status cards top, two charts, detail table), but the content is <b>frame-based, not event-based</b>. <code>foreign_object_detector_anomaly_detections</code> is "the number of anomalies detected in the frame" and <code>foreign_object_detector_max_anomaly_size</code> is "the size in mm of the largest anomaly". There is no FOD event-active flag, so this page shows no event count, duration, grouping or event rate. One object on a moving belt can appear in several consecutive frames, so summing detections over frames does not count objects.</div>
+
+  <div class="row c-sec"><div class="sec">Foreign Object Detection Overview</div><div class="ctl"><span class="lab">Sensor</span><span class="sel lock">lun_fdn_cvpsa_6140_cvy_0001</span></div></div>
+  <div class="note left">A <b>detection frame</b> is a reported sample with anomaly detections &#8805; 1. No detection frames in the range means the detector reported zero anomalies on every healthy frame; a range with no reported frames shows "no data" instead. Widen the date range to find earlier detections.</div>
+  <div class="row" style="grid-template-columns:2fr 1fr 1fr;margin-top:10px">
+    <div><div class="card kv" style="margin-bottom:10px"><span>Last Detection Frame</span><span class="val">no data (UTC-05:00)</span></div><div class="card kv"><span>Largest Anomaly at Last Detection</span><span class="val">no data (mm)</span></div></div>
+    <div class="card counter"><div class="ct">Detection Frames</div><div class="cs">% of healthy reported frames, Last 7 days</div><div class="v na">&#8212;</div><div class="d">no data</div></div>
+    <div class="card counter"><div class="ct">Largest Anomaly Size</div><div class="cs">Max over range (mm), Last 7 days</div><div class="v na">&#8212;</div><div class="d">no data</div></div>
+  </div>
+  <div class="row c2">
+    <div class="card" data-chart='{"title":"Daily Detection Frame Share","sub":"Detection frames as % of healthy reported frames, Last 7 days","legend":[["Series:"],["Detection frames","var(--fod)"],["No data","hatch"]],"y":{"label":"Detection frames [%]"},"x":{"label":"Local day (UTC-05:00)","cats":7},"msg":"Bar per local day, auto-scaled","note":"A share of frames, not an event rate.","src":"<code>foreign_object_detector_anomaly_detections</code><span class=\"badge b3\">V3</span>; denominator from <code>state_all_ok</code> and <code>image_health_all_ok</code>"}'></div>
+    <div class="card" data-chart='{"title":"Max Anomaly Size Distribution","sub":"Detection frames only, Last 7 days","legend":[["Series:"],["Detection frames","var(--fodsize)"]],"y":{"label":"Frequency (frames)"},"x":{"label":"Max anomaly size (mm)"},"msg":"Histogram, bin width to agree","src":"<code>foreign_object_detector_max_anomaly_size</code><span class=\"badge b3\">V3</span>. Frames with 0 detections excluded so size 0 does not dominate"}'></div>
+  </div>
+  <div class="row c2">
+    <div class="card" data-chart='{"title":"Anomaly Detections Trend","sub":"Max detections per frame in each minute, Last 7 days","legend":[["Series:"],["Max detections per frame","var(--fod)","ln"]],"y":{"label":"Detections per frame"},"x":{"label":"Local time (UTC-05:00)"},"msg":"Line, breaks at missing data","src":"Per-minute max, not sum, to avoid repeat counting across frames"}'></div>
+    <div class="card" data-chart='{"title":"Max Anomaly Size Trend","sub":"Per-minute max on detection frames, with P80 and Top Size for scale","legend":[["Series:"],["Max anomaly size","var(--fodsize)","pt"],["Top Size","#2d7f8f","ln"],["P80","var(--teal)","ln"]],"y":{"label":"Size (mm)"},"x":{"label":"Local time (UTC-05:00)"},"msg":"Points for anomalies over PSD lines","src":"Shows anomaly size against the measured ore size on the same belt. Comparing units assumes both are in mm on the same calibration (to confirm)"}'></div>
+  </div>
+  <div class="card">
+    <div class="ct">Detection Frame Details</div><div class="cs">Latest 20 detection frames, Last 7 days</div>
+    <table class="t"><thead><tr><th>Frame Time (UTC-05:00) &#9662;</th><th class="cn">Anomaly detections</th><th class="cn">Max anomaly size (mm)</th><th class="cn">Top Size (mm)</th><th class="cn">P80 (mm)</th><th class="cn">Image Health OK</th><th class="cn">Seconds since previous detection frame</th><th class="cn">Image</th></tr></thead>
+    <tbody><tr><td colspan="8" class="empty">No LUN0004 data loaded. "Seconds since previous detection frame" lets a reviewer see clustering without the dashboard asserting an event grouping.</td></tr></tbody></table>
+  </div>
+
+  <div class="sec" style="margin:10px 0">Required before event-based FOD reporting</div>
+  <div class="card callout-fod">
+    <table class="t"><thead><tr><th style="width:26%">Definition needed</th><th>Why it is needed</th><th style="width:28%">Unlocks</th></tr></thead><tbody>
+      <tr><td>FOD event rule: minimum detections and/or minimum anomaly size per frame</td><td>Separates a reportable object from low-level detector noise. Not stated in the tag list.</td><td>Event flag, Last FOD Event card</td></tr>
+      <tr><td>Merge gap (persistence rule)</td><td>Oversize uses "readings within 30 s are one event". No equivalent is documented for FOD; it depends on belt speed and field of view.</td><td>Event count, event duration</td></tr>
+      <tr><td>Frame rate and expected cadence of FOD output</td><td>Converts frame shares into time and is needed for any rate per hour or per tonne.</td><td>Detection time, events per hour</td></tr>
+      <tr><td>Belt run signal at FDN</td><td>An event rate needs running time as its denominator. <code>run_signal_all_ok</code> is V2-only in the tag list.</td><td>Events per running hour</td></tr>
+      <tr><td>Confirmed versus unconfirmed detections (operator or reviewer labels)</td><td>Without labels the page reports detector output, not foreign objects found.</td><td>Confirmed-object counts, false-alarm review</td></tr>
+      <tr><td>Linked frame images</td><td>Needed for any visual confirmation from the dashboard.</td><td>Image column, review workflow</td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PAGE 6  GLOSSARY & GUIDE
+===================================================================== -->
+<section class="page gl" id="p6">
+  <div class="ph"><h1>LUN FDN CVPSA Health and KPI Dashboard</h1><div class="pg">Page 6 of 6</div></div>
+  <div class="ph2">Glossary &amp; Guide</div>
+  <div class="chips"><span class="chip btn">&#9881; Global filters</span><span class="chip">&#127760; Date Range Filter: Last 7 days</span></div>
+  <div class="row c-title"><div class="titlecard">Glossary and Guide</div><div class="logo" data-logo></div></div>
+  <div class="card" style="margin-bottom:10px">
+    <h2>How to Read the Dashboard</h2>
+    <ul>
+      <li><i>Sensor Health Overview</i> &#8594; "Can I trust this data now?"</li>
+      <li><i>PSD KPI Trends</i> &#8594; "What size is the material?"</li>
+      <li><i>PSD Period Comparison</i> &#8594; "Has the size, and the oxidation classification, changed between two periods?"</li>
+      <li><i>Ore Oxidation Analysis</i> &#8594; "What share of the visible ore surface is classified as oxidised, and how does that line up with size?"</li>
+      <li><i>Foreign Object Detection</i> &#8594; "When did the detector flag anomalies, and how large were they?"</li>
+      <li><b>Reporting Time:</b> All times are site local (UTC-05:00).</li>
+      <li><b>Filters:</b> The Global Date Range Filter (Last 7 days) applies to the whole dashboard except the Period A and Period B selectors on page 3. FDN has one sensor: lun_fdn_cvpsa_6140_cvy_0001.</li>
+      <li><b>Missing data:</b> a gap, empty bar, hatched cell or "null" means no reading. Missing data is never shown as zero.</li>
+    </ul>
+  </div>
+
+  <div class="sec" style="margin-bottom:10px">Sensor Health Overview</div>
+  <div class="row c2">
+    <div class="card"><h3>Latest Sensor Health Status</h3><p class="lead">Snapshot of the latest reading. Not bound to the date range filter.</p>
+      <ul><li><b>Latest reporting time:</b> timestamp of the newest reading, in site local time.</li><li><b>Camera Comms:</b> camera online and receiving frames.</li><li><b>Run Signal OK:</b> belt run signal on.</li><li><b>State All OK:</b> sensor operations are normal and no faults reported.</li><li><b>Image Health OK:</b> image passed all quality checks.</li><li><b>OPC Heartbeat:</b> the sensor's heartbeat counter is still increasing.</li><li><b>PSD / Oxidation / FOD Reporting:</b> that output produced a value recently.</li><li><b>Last Reported:</b> time of the most recent reading.</li></ul>
+      <p class="lead">A null flag means the sensor did not report that value on its last reading.</p></div>
+    <div class="card"><h3>Sensor Health and Comms States</h3><p class="lead">Per local day across the selected date range.</p>
+      <ul><li><b style="color:var(--teal)">Sensor Healthy:</b> fraction of time the camera was online and the image passed all quality checks (not blurry, dark, noisy or stationary).</li><li><b style="color:var(--red)">Sensor Unhealthy:</b> fraction of time with a camera comms fault or an image fault, split by cause in the second chart.</li><li><b>Data Time Coverage:</b> received samples as a share of expected samples. Low coverage means averages for that day rest on less data.</li><li><b>Measurement Output Availability:</b> share of healthy time in which PSD, oxidation and FOD each reported.</li></ul>
+      <p>Sensor Healthy does not consider the belt run signal. A stopped but clean sensor still reads as healthy.</p></div>
+  </div>
+
+  <div class="sec" style="margin-bottom:10px">PSD KPI Trends and Period Comparison</div>
+  <div class="row c2">
+    <div class="card"><h3>PSD Metrics</h3><p class="lead">Particle size distribution over the selected date range. Each metric has a trend (over time) and a distribution (how often each value occurred).</p>
+      <ul><li><b>P20 (mm):</b> size below which 20% of material passes. The fine end.</li><li><b>P50 (mm):</b> median size. Half the material is finer, half coarser.</li><li><b>P80 (mm):</b> size below which 80% of material passes. The standard size indicator.</li><li><b>Top Size (mm):</b> the largest particle width measured. The coarse end.</li></ul>
+      <p><b>S-Curve (Cumulative Passing):</b> cumulative percent passing against particle size, one curve per complete local day.</p></div>
+    <div class="card"><h3>Comparing Two Periods</h3><p class="lead">Select two date ranges and a PSD metric.</p>
+      <ul><li><b>Counters:</b> the Period B (recent) value with its change versus Period A (baseline). An up arrow means Period B is higher.</li><li><b>Distribution Comparison:</b> each period normalised to its own sample count, so periods of different length compare by shape.</li><li><b>Oxidation over the same periods:</b> qualified means of OHF + OLF, OHF and OLF for the same Period A and B. Check qualified coverage for both periods before reading a difference.</li></ul>
+      <p><b>Note:</b> page 3 uses its own Period A and Period B selectors. The Global Date Range Filter does not drive these charts.</p></div>
+  </div>
+
+  <div class="sec" style="margin-bottom:10px">Ore Oxidation Analysis</div>
+  <div class="row c2">
+    <div class="card"><h3>Oxidation Fractions</h3><p class="lead">Outputs of the CVPSA ore-colour classifier, per sample, each between 0 and 1.</p>
+      <ul><li><b style="color:var(--ohf)">OHF</b> and <b style="color:var(--olf)">OLF:</b> fractions of the visible ore surface assigned to the two oxidised colour classes.</li><li><b style="color:var(--sum)">OHF + OLF:</b> the apparent oxidised fraction. The headline oxidation measure on this dashboard.</li><li><b style="color:var(--onf)">ONF</b> and <b style="color:var(--oof)">OOF:</b> fractions assigned to the two remaining classes. Shown for context.</li><li><b style="color:var(--oocf)">OOCF:</b> ore-coverage qualification value. Samples with OOCF below 0.3 are excluded from every oxidation average.</li></ul>
+      <p><b>What these are not:</b> colour classifications of the visible ore surface. They are not laboratory oxidation assays and do not measure oxidation inside particles. Agreement with assays must be established separately.</p></div>
+    <div class="card"><h3>Reading the Oxidation Charts</h3>
+      <ul><li><b>Qualified:</b> sample with OOCF &#8805; 0.3 taken while the sensor was healthy. Only qualified samples enter averages.</li><li><b>Excluded:</b> sample received but not used (OOCF below 0.3, or sensor unhealthy). Shown in the Sample Status chart, the heatmap (grey) and the hourly table.</li><li><b>No data:</b> no sample received. Shown hatched or as a gap.</li><li><b>Daily and hourly values</b> are means of qualified samples in that day or hour. Check Qualified coverage before comparing days.</li><li><b>Oxidation in PSD context:</b> panels share one time axis so changes can be compared with P80 and Top Size of the same material. Lining up in time is not evidence that one causes the other.</li><li><b>Representative imagery:</b> camera frames from the selected hour with the values recorded at each frame.</li></ul></div>
+  </div>
+
+  <div class="sec" style="margin-bottom:10px">Foreign Object Detection</div>
+  <div class="row c2">
+    <div class="card"><h3>FOD Measurements</h3><p class="lead">The detector reports per frame. This page does not define FOD events.</p>
+      <ul><li><b>Anomaly detections:</b> number of anomalies the detector found in a frame.</li><li><b>Max anomaly size (mm):</b> size of the largest anomaly in that frame.</li><li><b>Detection frame:</b> a reported frame with at least one anomaly detection.</li><li><b>Detection Frames (%):</b> detection frames as a share of healthy reported frames.</li></ul></div>
+    <div class="card"><h3>Reading the FOD Charts</h3>
+      <ul><li>One object can appear in several consecutive frames, so detection frames do not equal objects.</li><li>Trends use the per-minute maximum, never the sum.</li><li>A detection is a detector output, not a confirmed foreign object.</li><li>No data means no frames were reported; zero detection frames means frames were reported without anomalies.</li></ul></div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     ANNEX  PAGE-TO-TAG MAP + MISSING INPUTS
+===================================================================== -->
+<section class="page" id="p7">
+  <div class="ph"><h1>Design Annex (not a dashboard page)</h1><div class="pg">LUN0004</div></div>
+  <div class="ph2">Page-to-tag mapping and missing inputs</div>
+  <div class="note left" style="margin-bottom:10px">Source: <code>LYN0003-2500-007-1.7 Sensor OPC tag list (Lundin FDN)</code>, sheets "CVPSA V3" and "CVPSA V2 example". <span class="badge b3">V3</span> documented on the V3 sheet. <span class="badge b2">V2 only</span> appears only on the V2 mapping sheet. <span class="badge bn">not in tag list</span> absent from both sheets. <b>Historisation at FDN is unverified for every field</b>; the tag list is a specification, not evidence of stored data.</div>
+  <table class="map"><thead><tr><th>Page</th><th>Element</th><th>Documented fields</th><th>Status</th><th>Dependency or open point</th></tr></thead><tbody>
+    <tr><td>1 Health</td><td>Health state, State All OK</td><td><code>state_all_ok</code>, <code>image_health_all_ok</code></td><td><span class="badge b3">V3</span></td><td>Historise: yes</td></tr>
+    <tr><td></td><td>Camera Comms, Comms Lost</td><td>V2 <code>PSA_image_health_camera_timeout</code> &#8594; V3 name <code>PSA_state_camera</code></td><td><span class="badge b2">V2 only</span></td><td>Confirm FDN name and that it is published</td></tr>
+    <tr><td></td><td>Run Signal OK</td><td><code>run_signal_all_ok</code></td><td><span class="badge b2">V2 only</span></td><td>Confirm; otherwise drop column</td></tr>
+    <tr><td></td><td>OPC Heartbeat</td><td><code>MonotonicIncreasing</code> (+1 per 100 ms)</td><td><span class="badge b3">V3</span></td><td>Staleness limit to define</td></tr>
+    <tr><td></td><td>Time coverage</td><td>Sensing timestamp per dataset</td><td><span class="badge b2">V2 note</span></td><td>Expected output cadence not documented</td></tr>
+    <tr><td>2 PSD</td><td>P20, P50, P80</td><td><code>psd_percentiles_0/1/2</code>; labels <code>psd_percentile_value_0..2</code> (20/50/80)</td><td><span class="badge b3">V3</span></td><td>Historise: yes</td></tr>
+    <tr><td></td><td>Top Size</td><td><code>psd_largest_particle_width</code> (length also available)</td><td><span class="badge b3">V3</span></td><td>Same definition as Quellaveco glossary</td></tr>
+    <tr><td></td><td>S-curve</td><td><code>psd_bin_0..19</code> (1 to 710 mm), <code>psd_sccfp_0..19</code></td><td><span class="badge b3">V3</span></td><td>Bins historised on change only</td></tr>
+    <tr><td>3 Period</td><td>PSD block</td><td>As page 2</td><td><span class="badge b3">V3</span></td><td>None</td></tr>
+    <tr><td></td><td>Oxidation block</td><td>As page 4</td><td><span class="badge bn">not in tag list</span></td><td>Oxidation tags</td></tr>
+    <tr><td>4 Oxidation</td><td>Class fractions</td><td>OHF, OLF, ONF, OOF</td><td><span class="badge bn">not in tag list</span></td><td>Tag/column names, table, cadence, start date</td></tr>
+    <tr><td></td><td>Qualification</td><td>OOCF, threshold 0.3</td><td><span class="badge bn">not in tag list</span></td><td>Confirm &#8805; vs &gt;; confirm it is the only exclusion rule</td></tr>
+    <tr><td></td><td>PSD context</td><td><code>psd_percentiles_2</code>, <code>psd_largest_particle_width</code></td><td><span class="badge b3">V3</span></td><td>Timestamp alignment with oxidation output</td></tr>
+    <tr><td></td><td>Imagery</td><td>none</td><td><span class="badge bn">not in tag list</span></td><td>Image store, key, retention, access from Databricks</td></tr>
+    <tr><td>5 FOD</td><td>Detections, size</td><td><code>foreign_object_detector_anomaly_detections</code>, <code>foreign_object_detector_max_anomaly_size</code></td><td><span class="badge b3">V3</span></td><td>Tag names carry trailing spaces in the sheet; trim in ingest. Event definition absent</td></tr>
+    <tr><td></td><td>(Oversize, retired page)</td><td><code>oversize_window_0_event_active</code>, <code>oversize_window_0_particle_count</code></td><td><span class="badge b3">V3</span></td><td>Documented at FDN. Can be added back as a section if wanted</td></tr>
+  </tbody></table>
+
+  <div class="sec" style="margin:14px 0 10px">Missing inputs to populate with LUN0004 data</div>
+  <div class="card miss"><ol>
+    <li><b>Oxidation output schema.</b> Exact tag or column names for OHF, OLF, ONF, OOF and OOCF, the Databricks table they land in, output cadence, and the date oxidation output began at FDN.</li>
+    <li><b>OOCF rule.</b> Confirm qualification is OOCF &#8805; 0.3 (not &gt;), and whether any other exclusion applies (empty belt, run signal, image health).</li>
+    <li><b>Class definitions</b> for OHF, OLF, ONF and OOF from the oxidation model documentation, and whether the four fractions are expected to sum to 1. Needed for glossary wording and a data-integrity check.</li>
+    <li><b>Historised data check.</b> Confirmation of which documented tags are actually historised for <code>lun_fdn_cvpsa_6140_cvy_0001</code>, from what date, at what rate.</li>
+    <li><b>Camera comms and run signal tags</b> at FDN (V2-only in the tag list). Without them, page 1 loses the Comms Lost split and the Run Signal column.</li>
+    <li><b>Expected sample cadence</b> per output, to compute coverage and to separate "no data" from "excluded".</li>
+    <li><b>Image access.</b> Frame storage location, timestamp key matching the measurement records, retention period, and whether Databricks can serve thumbnails.</li>
+    <li><b>FOD event definition</b> (detection/size threshold, merge gap, belt speed or frame rate) if event-based reporting is wanted. Until then page 5 stays frame-based.</li>
+    <li><b>Minimum coverage rule</b> for showing an hourly or daily oxidation mean (for example 50% qualified), and the minimum sample count before any scatter statistics are shown.</li>
+  </ol></div>
+</section>
+
+<script>
+/* ---------- helpers that draw EMPTY chart frames (no data values) ---------- */
+const NS='http://www.w3.org/2000/svg';
+function legendHTML(lg){if(!lg)return'';return'<div class="legend">'+lg.map(l=>{if(l.length===1)return'<b>'+l[0]+'</b>';const[t,c,k]=l;if(c==='hatch')return'<span><span class="sw hatch"></span>'+t+'</span>';if(c==='dash')return'<span><span class="sw dash"></span>'+t+'</span>';if(k==='ln')return'<span><span class="sw ln" style="background:'+c+'"></span>'+t+'</span>';if(k==='pt')return'<span><span class="sw" style="background:'+c+';border-radius:50%"></span>'+t+'</span>';return'<span><span class="sw" style="background:'+c+'"></span>'+t+'</span>'}).join('')+'</div>'}
+function axes(o){
+  const W=o.w||640,H=o.h||250,L=58,R=14,T=12,B=o.x&&(o.x.labels||o.x.ticks||o.x.cats)?50:36,pw=W-L-R,ph=H-T-B;
+  let s=`<svg class="ch" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`;
+  s+=`<defs><pattern id="hp" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#fff"/><line x1="0" y1="0" x2="0" y2="6" stroke="#cfcfcf" stroke-width="2"/></pattern></defs>`;
+  const yt=o.y&&o.y.ticks?o.y.ticks:[null,null,null,null,null];
+  yt.forEach((t,i)=>{const y=T+ph-ph*i/(yt.length-1);s+=`<line x1="${L}" x2="${L+pw}" y1="${y}" y2="${y}" stroke="#e6e6e6"/>`;if(t!==null)s+=`<text x="${L-6}" y="${y+4}" font-size="11" text-anchor="end" fill="#555">${t}</text>`;});
+  s+=`<line x1="${L}" x2="${L}" y1="${T}" y2="${T+ph}" stroke="#bbb"/><line x1="${L}" x2="${L+pw}" y1="${T+ph}" y2="${T+ph}" stroke="#bbb"/>`;
+  if(!(o.y&&o.y.ticks))s+=`<text x="${L-6}" y="${T+10}" font-size="10" text-anchor="end" fill="#aaa">auto</text>`;
+  // x categories / ticks
+  if(o.x){
+    if(o.x.cats){const n=o.x.cats;for(let i=0;i<n;i++){const cx=L+pw*(i+.5)/n,bw=pw/n*.62;
+        if(o.kind==='pair'){s+=`<rect x="${cx-bw/2}" y="${T+ph*.15}" width="${bw/2-2}" height="${ph*.85}" fill="none" stroke="#c9c9c9" stroke-dasharray="4 3"/><rect x="${cx+2}" y="${T+ph*.15}" width="${bw/2-2}" height="${ph*.85}" fill="none" stroke="#c9c9c9" stroke-dasharray="4 3"/>`;}
+        else if(o.kind==='gbar'){for(let k=0;k<3;k++)s+=`<rect x="${cx-bw/2+k*bw/3+1}" y="${T}" width="${bw/3-2}" height="${ph}" fill="none" stroke="#d6d6d6" stroke-dasharray="3 3"/>`;}
+        else s+=`<rect x="${cx-bw/2}" y="${T}" width="${bw}" height="${ph}" fill="none" stroke="#d6d6d6" stroke-dasharray="4 3"/>`;
+        s+=`<text x="${cx}" y="${T+ph+16}" font-size="11" text-anchor="middle" fill="#555">${n===1?'lun_fdn_cvpsa_6140_cvy_0001':(i===n-1?'D0':'D-'+(n-1-i))}</text>`;}}
+    const lab=o.x.labels||o.x.ticks;
+    if(lab){lab.forEach((t,i)=>{const x=o.x.labels?L+pw*(i+.5)/lab.length:L+pw*i/(lab.length-1);
+        if(o.x.labels){const bw=pw/lab.length*.3;s+=`<rect x="${x-bw-1}" y="${T}" width="${bw}" height="${ph}" fill="none" stroke="#d6d6d6" stroke-dasharray="4 3"/><rect x="${x+1}" y="${T}" width="${bw}" height="${ph}" fill="none" stroke="#d6d6d6" stroke-dasharray="4 3"/>`;}
+        else s+=`<line x1="${x}" x2="${x}" y1="${T}" y2="${T+ph}" stroke="#f0f0f0"/>`;
+        s+=`<text x="${x}" y="${T+ph+16}" font-size="11" text-anchor="middle" fill="#555">${t}</text>`;});}
+    if(o.kind==='stack24'){for(let i=0;i<24;i++){const bw=pw/24;s+=`<rect x="${L+i*bw+2}" y="${T}" width="${bw-4}" height="${ph}" fill="none" stroke="#e2e2e2" stroke-dasharray="3 3"/>`;}}
+    s+=`<text x="${L+pw/2}" y="${H-6}" font-size="12" font-weight="700" text-anchor="middle" fill="#333">${o.x.label}</text>`;
+  }
+  if(o.y)s+=`<text transform="translate(14 ${T+ph/2}) rotate(-90)" font-size="12" font-weight="700" text-anchor="middle" fill="#333">${o.y.label}</text>`;
+  if(o.hline!==undefined){const ymax=1,y=T+ph-ph*o.hline/ymax;s+=`<rect x="${L}" y="${y}" width="${pw}" height="${T+ph-y}" fill="rgba(47,111,159,.08)"/><line x1="${L}" x2="${L+pw}" y1="${y}" y2="${y}" stroke="#333" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${L+pw-4}" y="${y-5}" font-size="11" text-anchor="end" fill="#333" font-weight="700">OOCF = 0.3 qualification threshold</text>`;}
+  // placeholder message
+  s+=`<rect x="${L+pw/2-170}" y="${T+ph/2-24}" width="340" height="46" rx="4" fill="#fff" stroke="#ddd"/>`;
+  s+=`<text x="${L+pw/2}" y="${T+ph/2-5}" font-size="12.5" text-anchor="middle" fill="#888" font-weight="700">No LUN0004 data loaded</text>`;
+  s+=`<text x="${L+pw/2}" y="${T+ph/2+12}" font-size="11" text-anchor="middle" fill="#999">${o.msg||''}</text>`;
+  return s+'</svg>';
+}
+document.querySelectorAll('[data-chart]').forEach(el=>{const o=JSON.parse(el.dataset.chart);
+  el.innerHTML=`<div class="ct">${o.title}</div><div class="cs">${o.sub||''}</div>${legendHTML(o.legend)}${axes(o)}${o.note?'<div style="font-size:11px;color:#666;text-align:center;margin-top:4px"><i>'+o.note+'</i></div>':''}${o.src?'<div class="src">'+o.src+'</div>':''}`;});
+// counters
+document.querySelectorAll('[data-counters]').forEach(el=>{JSON.parse(el.dataset.counters).forEach(([t,s,k,sum])=>{
+  const d=document.createElement('div');d.className='card counter';
+  if(sum)d.style.borderTop='3px solid var(--sum)';
+  d.innerHTML=`<div class="ct">${t}</div><div class="cs">${s}</div><div class="v na">&#8212;</div><div class="d">${k==='frac'?'<span class="pill">no data</span> fraction 0 to 1':k==='pct'?'<span class="pill">no data</span> %':'<span class="pill">&#8597; no data</span> baseline: no data'}</div>`;el.appendChild(d);});});
+// logo placeholders (wordmark rendered in CSS, no image asset)
+document.querySelectorAll('[data-logo]').forEach(el=>{el.innerHTML='<div class="ring"></div><div class="wm">StoneThree<small>logo placeholder: use existing dashboard asset</small></div>'});
+// page 2 trend + distribution grid
+const p2=document.getElementById('p2grid');
+[['Top Size','Top Size (mm)'],['P80','P80 (mm)'],['P50','P50 (mm)'],['P20','P20 (mm)']].forEach(([m,u])=>{
+  const a=document.createElement('div');a.className='card';a.dataset.chart=JSON.stringify({title:m+' Trend',sub:'Last 7 days',legend:[['Sensor:'],['lun_fdn_cvpsa_6140_cvy_0001','var(--teal)','ln']],y:{label:(m==='Top Size'?'Top Size':'PSD '+m)+' (mm)'},x:{label:'Local time (UTC-05:00)'},msg:'Minute-level line, breaks at missing data'});
+  const b=document.createElement('div');b.className='card';b.dataset.chart=JSON.stringify({title:m+' Distribution',sub:'Last 7 days',legend:[['Sensor:'],['lun_fdn_cvpsa_6140_cvy_0001','var(--teal)']],y:{label:'Frequency'},x:{label:u},msg:'Area histogram'});
+  p2.append(a,b);});
+document.querySelectorAll('#p2grid [data-chart]').forEach(el=>{const o=JSON.parse(el.dataset.chart);el.innerHTML=`<div class="ct">${o.title}</div><div class="cs">${o.sub}</div>${legendHTML(o.legend)}${axes(o)}`;});
+// heatmap
+document.querySelectorAll('[data-heat]').forEach(el=>{const o=JSON.parse(el.dataset.heat);
+  const W=640,L=52,T=6,cw=(W-L-14)/24,rh=26,H=T+o.rows*rh+70;
+  let s=`<svg class="ch" viewBox="0 0 ${W} ${H}"><defs><pattern id="hp2" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#fff"/><line x1="0" y1="0" x2="0" y2="6" stroke="#d2d2d2" stroke-width="2"/></pattern><linearGradient id="g1"><stop offset="0" stop-color="#fbeee2"/><stop offset=".5" stop-color="#e39a52"/><stop offset="1" stop-color="#4a1f14"/></linearGradient></defs>`;
+  for(let r=0;r<o.rows;r++){s+=`<text x="${L-6}" y="${T+r*rh+rh/2+4}" font-size="11" text-anchor="end" fill="#555">${r===o.rows-1?'D0':'D-'+(o.rows-1-r)}</text>`;
+    for(let c=0;c<24;c++)s+=`<rect x="${L+c*cw}" y="${T+r*rh}" width="${cw-1.5}" height="${rh-1.5}" fill="url(#hp2)"/>`;}
+  for(let c=0;c<=24;c+=3)s+=`<text x="${L+c*cw}" y="${T+o.rows*rh+14}" font-size="10" text-anchor="middle" fill="#555">${String(c).padStart(2,'0')}</text>`;
+  s+=`<text x="${L+12*cw}" y="${T+o.rows*rh+30}" font-size="12" font-weight="700" text-anchor="middle" fill="#333">Hour of day (UTC-05:00)</text>`;
+  const ly=T+o.rows*rh+44;s+=`<rect x="${L}" y="${ly}" width="160" height="10" fill="url(#g1)"/><text x="${L}" y="${ly+22}" font-size="10" fill="#555">0</text><text x="${L+160}" y="${ly+22}" font-size="10" text-anchor="end" fill="#555">1</text><text x="${L+80}" y="${ly+22}" font-size="10" text-anchor="middle" fill="#555">OHF + OLF</text>`;
+  s+=`<rect x="${L+200}" y="${ly}" width="14" height="10" fill="#bdbdbd"/><text x="${L+218}" y="${ly+9}" font-size="10" fill="#555">Excluded (no qualified samples)</text>`;
+  s+=`<rect x="${L+390}" y="${ly}" width="14" height="10" fill="url(#hp2)" stroke="#ccc"/><text x="${L+408}" y="${ly+9}" font-size="10" fill="#555">No data received</text>`;
+  s+=`<rect x="${L+12*cw-150}" y="${T+o.rows*rh/2-20}" width="300" height="34" rx="4" fill="#fff" stroke="#ddd"/><text x="${L+12*cw}" y="${T+o.rows*rh/2+2}" font-size="12.5" font-weight="700" text-anchor="middle" fill="#888">No LUN0004 data loaded</text></svg>`;
+  el.innerHTML=`<div class="ct">${o.title}</div><div class="cs">${o.sub}</div>${s}<div class="src">${o.src}</div>`;});
+// aligned mini panels
+document.querySelectorAll('[data-mini]').forEach((el,idx,all)=>{const o=JSON.parse(el.dataset.mini);
+  const W=640,H=70,L=58,R=14,T=6,ph=H-T-10,pw=W-L-R;
+  let s=`<svg class="ch" viewBox="0 0 ${W} ${H}">`;
+  (o.ticks||[null,null,null]).forEach((t,i,a)=>{const y=T+ph-ph*i/(a.length-1);s+=`<line x1="${L}" x2="${L+pw}" y1="${y}" y2="${y}" stroke="#ececec"/>`;if(t)s+=`<text x="${L-6}" y="${y+4}" font-size="10" text-anchor="end" fill="#666">${t}</text>`;});
+  s+=`<line x1="${L}" x2="${L}" y1="${T}" y2="${T+ph}" stroke="#bbb"/><line x1="${L}" x2="${L+pw}" y1="${T+ph}" y2="${T+ph}" stroke="#bbb"/>`;
+  s+=`<line x1="${L+pw*.62}" x2="${L+pw*.62}" y1="${T}" y2="${T+ph}" stroke="#999" stroke-dasharray="2 3"/>`;
+  if(o.hline!==undefined){const y=T+ph-ph*o.hline;s+=`<line x1="${L}" x2="${L+pw}" y1="${y}" y2="${y}" stroke="#333" stroke-dasharray="6 4"/><text x="${L+pw-4}" y="${y-3}" font-size="9" text-anchor="end" fill="#333">0.3</text>`;}
+  s+=`<text x="${L+6}" y="${T+12}" font-size="11" font-weight="700" fill="${o.color}">${o.name}</text><text x="${L+pw/2}" y="${T+ph/2+4}" font-size="11" text-anchor="middle" fill="#aaa">no data</text>`;
+  s+=`<text transform="translate(12 ${T+ph/2}) rotate(-90)" font-size="9.5" text-anchor="middle" fill="#333" font-weight="700">${o.label}</text></svg>`;el.innerHTML=s;});
+document.querySelectorAll('[data-strip]').forEach(el=>{const W=640,L=58,pw=W-L-14;
+  let s=`<svg class="ch" viewBox="0 0 ${W} 58"><text x="${L-6}" y="16" font-size="10" text-anchor="end" fill="#333" font-weight="700">Status</text><rect x="${L}" y="6" width="${pw}" height="14" fill="url(#hp)" stroke="#ddd"/>`;
+  s+=`<line x1="${L+pw*.62}" x2="${L+pw*.62}" y1="0" y2="22" stroke="#999" stroke-dasharray="2 3"/>`;
+  ['D-6','D-5','D-4','D-3','D-2','D-1','D0'].forEach((t,i)=>{s+=`<text x="${L+pw*(i+.5)/7}" y="34" font-size="10" text-anchor="middle" fill="#555">${t}</text>`});
+  s+=`<text x="${L+pw/2}" y="52" font-size="11" text-anchor="middle" font-weight="700" fill="#333">Local time (UTC-05:00) · status strip: qualified / OOCF&lt;0.3 / unhealthy / no data</text></svg>`;el.innerHTML=s;});
+// imagery tiles
+const cam='<svg width="34" height="26" viewBox="0 0 34 26"><rect x="1" y="5" width="32" height="20" rx="3" fill="none" stroke="#aaa" stroke-width="2"/><circle cx="17" cy="15" r="6" fill="none" stroke="#aaa" stroke-width="2"/><rect x="11" y="1" width="12" height="5" rx="1" fill="#aaa"/></svg>';
+[['Lowest OHF + OLF','qualified frame nearest hourly minimum'],['Median OHF + OLF','qualified frame nearest hourly median'],['Highest OHF + OLF','qualified frame nearest hourly maximum'],['Lowest OOCF','example of an excluded frame']].forEach(([t,s])=>{
+  const f=document.createElement('div');f.className='frame';
+  f.innerHTML=`<div class="ph">${cam}<div><b>Image not available</b><br>no frame source linked</div></div><div class="cap"><b>${t}</b><span>${s}</span><br>Time: <span>null</span> · OHF <span>null</span> · OLF <span>null</span> · OHF+OLF <span>null</span><br>ONF <span>null</span> · OOF <span>null</span> · OOCF <span>null</span> · P80 <span>null</span> mm</div>`;
+  document.getElementById('imgs').appendChild(f);});
+// navigation
+function show(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===id));if(location.hash!=='#'+id)history.replaceState(null,'','#'+id);window.scrollTo(0,0);}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>show(b.dataset.p));
+document.getElementById('anno').onchange=e=>document.body.classList.toggle('noanno',!e.target.checked);
+show((location.hash||'#p1').slice(1));
+window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+</script>
+</body>
+</html>

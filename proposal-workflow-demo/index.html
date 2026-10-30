@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stone Three | Proposal Workflow Demo</title>
+<style>
+:root{
+  --cyan:#51C2D3; --space:#575B66; --char:#333333; --light:#F2F2F2; --white:#FFFFFF;
+  --cyan-15:rgba(81,194,211,.15); --line:#DCDDE0; --muted:#6b6f79;
+  --red:#C00000; --red-bg:#FBEDED; --amber:#8a5a00; --amber-bg:#FFF4DC; --ok-bg:#E8F6F8; --green:#1d7a46; --green-bg:#E6F4EC;
+  --font:"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{font-size:clamp(14px,.5vw + 8px,19px)}
+html,body{height:100%;margin:0}
+body{font-family:var(--font);color:var(--char);background:var(--white);overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default;opacity:.4}
+:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.app{display:grid;grid-template-columns:minmax(280px,27%) 1fr;height:100vh}
+
+/* left pane (reused from the prototype) */
+.left{background:var(--light);display:flex;flex-direction:column;padding:1.5rem 1.4rem 1.1rem;border-right:1px solid var(--line);min-height:0;overflow-y:auto}
+.brand img{height:2rem;width:auto;display:block;margin-bottom:1.3rem}
+.left h1{font-size:1.45rem;line-height:1.15;font-weight:700;margin:0;letter-spacing:-.01em}
+.uline{width:2.4rem;height:3px;background:var(--cyan);margin:.6rem 0 .8rem}
+.lede{font-weight:300;font-size:.9rem;color:var(--space);margin:0 0 1rem;line-height:1.4}
+.lede b{font-weight:600}
+.session{background:var(--white);border:1px solid var(--line);border-radius:.7rem;padding:.75rem .9rem;margin-bottom:1rem;font-size:.82rem;line-height:1.45}
+.session .sid{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--space);font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+.session .sv{font-weight:500}
+.session .saved{color:var(--space);font-weight:300}
+.stages{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.3rem;flex:1}
+.stage{all:unset;box-sizing:border-box;display:grid;grid-template-columns:2rem 1fr;gap:.75rem;align-items:start;width:100%;padding:.6rem .8rem;border-radius:.6rem;border:1px solid transparent;cursor:pointer;transition:background .2s}
+.stage:hover{background:rgba(255,255,255,.7)}
+.stage:focus-visible{outline:3px solid var(--cyan)}
+.stage .n{width:2rem;height:2rem;border-radius:50%;border:2px solid var(--space);display:grid;place-items:center;font-weight:700;font-size:.88rem;color:var(--space)}
+.stage .t{font-size:1.02rem;font-weight:500;line-height:1.2}
+.stage .d{font-size:.78rem;font-weight:300;color:var(--space);line-height:1.35;margin-top:.15rem}
+.stage.active{background:var(--white);border-color:var(--line);box-shadow:0 2px 10px rgba(51,51,51,.08)}
+.stage.active .n{background:var(--cyan);border-color:var(--cyan);color:var(--char)}
+.stage.active .t{font-weight:700}
+.stage.done .n{background:var(--space);border-color:var(--space);color:#fff}
+.stage.locked{cursor:default;opacity:.45}
+.stage.locked:hover{background:transparent}
+.lfoot{margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--line);display:flex;align-items:flex-end;justify-content:space-between;gap:.8rem}
+.lfoot .note{font-size:.72rem;color:var(--space);line-height:1.45;font-weight:300}
+.lfoot a{color:var(--char)}
+.internal-label{border:1px solid #888d99;color:#575B66;padding:.25rem .45rem;border-radius:.3rem;white-space:nowrap;font-size:.6rem;letter-spacing:.05em;font-weight:700}
+.textbtn{border:0;background:none;padding:0;text-decoration:underline;color:var(--char);font-size:inherit}
+
+/* right pane */
+.right{display:flex;flex-direction:column;min-width:0;min-height:0}
+.rhead{padding:1.3rem 2.2rem .9rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;border-bottom:1px solid var(--line)}
+.kicker{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--space);font-weight:500}
+.rhead h2{margin:.2rem 0 0;font-size:1.7rem;line-height:1.1;font-weight:700;letter-spacing:-.015em}
+.rhead .sub{margin:.4rem 0 0;font-weight:300;font-size:.95rem;color:var(--space);max-width:54rem;line-height:1.4}
+.chip{flex:none;border:1.5px dashed var(--space);border-radius:2rem;padding:.32rem .8rem;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--space);white-space:nowrap}
+.panels{position:relative;flex:1;min-height:0}
+.panel{position:absolute;inset:0;overflow:auto;padding:1.3rem 2.2rem 2.4rem;display:none}
+.panel.active{display:block;animation:in .3s ease both}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.panel.active{animation:none}}
+
+/* shared components (reused) */
+.card{background:var(--white);border:1px solid var(--line);border-radius:.8rem;padding:1rem 1.2rem}
+.card.grey{background:var(--light);border-color:transparent}
+.card h3,.h3{margin:0 0 .7rem;font-size:.74rem;letter-spacing:.13em;text-transform:uppercase;color:var(--space);font-weight:600}
+.card h3::after,.h3::after{content:"";display:block;width:2rem;height:3px;background:var(--cyan);margin-top:.4rem}
+.callout{border-left:4px solid var(--cyan);background:var(--ok-bg);padding:.75rem 1.1rem;border-radius:0 .6rem .6rem 0;font-size:.9rem;line-height:1.45}
+.callout.warn{border-color:var(--red);background:var(--red-bg)}
+.callout.amber{border-color:#d98e32;background:var(--amber-bg)}
+.callout.ok{border-color:var(--green);background:var(--green-bg)}
+.small{font-size:.8rem;color:var(--space);font-weight:300;line-height:1.4}
+.stack{display:grid;gap:1rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.tag{display:inline-block;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:.14rem .5rem;border-radius:1rem;white-space:nowrap;vertical-align:middle}
+.tag.blocker{background:var(--red);color:#fff}
+.tag.warning{background:var(--amber-bg);color:var(--amber)}
+.tag.info{background:var(--light);color:var(--space)}
+.tag.ok{background:var(--green-bg);color:var(--green)}
+.tag.sim{background:#fff;color:var(--space);border:1px dashed var(--space)}
+.tag.int{background:var(--char);color:#fff}
+.tag.cy{background:var(--cyan-15);color:#1f6a76}
+table.t{border-collapse:collapse;width:100%;font-size:.86rem}
+table.t th{background:var(--char);color:#fff;text-align:left;font-weight:500;padding:.5rem .65rem;font-size:.76rem;letter-spacing:.03em}
+table.t td{padding:.45rem .65rem;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.35}
+table.t .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.grp td{background:var(--light);font-weight:700;font-size:.78rem;letter-spacing:.04em}
+table.t tr.tot td{font-weight:700;border-top:2px solid var(--char)}
+.btn{border:1px solid var(--space);background:var(--white);border-radius:2rem;padding:.5rem 1.1rem;font-weight:500;font-size:.88rem;transition:background .15s;white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--cyan-15)}
+.btn.primary{background:var(--cyan);border-color:var(--cyan);color:var(--char);font-weight:700}
+.btn.primary:hover:not(:disabled){background:#43b3c4}
+.btn.sm{padding:.25rem .75rem;font-size:.78rem}
+.btn.dark{background:var(--char);border-color:var(--char);color:#fff}
+.row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.src{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.1rem .45rem;border-radius:.8rem;white-space:nowrap}
+.src.you{background:var(--cyan-15);color:#1f6a76}
+.src.ref{background:#E4E6EA;color:var(--char)}
+.src.std{background:var(--green-bg);color:var(--green)}
+.src.asm{background:var(--amber-bg);color:var(--amber)}
+.src.ans{background:var(--char);color:#fff}
+.src.pend{background:var(--red-bg);color:var(--red)}
+.src.s3c{background:#fff;border:1px dashed var(--space);color:var(--space)}
+
+/* step 1: conversation */
+.chatgrid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:1.2rem;align-items:start}
+.chat{border:1px solid var(--line);border-radius:.9rem;display:flex;flex-direction:column;height:min(74vh,720px);overflow:hidden}
+.chat-h{display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;border-bottom:1px solid var(--line);background:var(--light);font-weight:700;font-size:.9rem}
+.chat-msgs{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.7rem}
+.msg{max-width:88%;padding:.65rem .9rem;border-radius:.8rem;font-size:.9rem;line-height:1.45}
+.msg.claude{background:var(--light);align-self:flex-start;border-top-left-radius:.2rem}
+.msg.you{background:var(--cyan-15);align-self:flex-end;border-top-right-radius:.2rem}
+.msg.sys{align-self:center;background:none;color:var(--space);font-size:.76rem;font-style:italic;padding:.1rem}
+.msg .who{display:block;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--space);font-weight:700;margin-bottom:.2rem}
+.msg ul{margin:.35rem 0 0;padding-left:1.1rem}
+.file{display:flex;gap:.6rem;align-items:center;background:#fff;border:1px solid var(--line);border-radius:.6rem;padding:.5rem .7rem;margin-top:.45rem}
+.file .ic{width:1.9rem;height:2.2rem;border-radius:.25rem;background:#2b579a;color:#fff;font-size:.6rem;font-weight:700;display:grid;place-items:center;flex:none}
+.file .ic.pdf{background:#b30b00}
+.file .fm{flex:1;min-width:0;font-size:.82rem}
+.file .fm b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-act{display:flex;flex-wrap:wrap;gap:.45rem;padding:.6rem 1rem;border-top:1px solid var(--line)}
+.chat-act:empty{display:none}
+.chat-act .q{width:100%;font-size:.78rem;color:var(--space);font-weight:500}
+.chat-form{display:flex;gap:.5rem;padding:.7rem 1rem;border-top:1px solid var(--line)}
+.chat-form textarea{flex:1;resize:none;height:3.1rem;border:1px solid var(--line);border-radius:.6rem;padding:.5rem .7rem;font-size:.88rem}
+.req dl{margin:0;display:grid;grid-template-columns:minmax(7.5rem,36%) 1fr;gap:.5rem .8rem;font-size:.86rem}
+.req dt{color:var(--space);font-weight:300}
+.req dd{margin:0;font-weight:500}
+.req dd .src{margin-left:.35rem}
+.req .empty{color:var(--space);font-weight:300;font-size:.88rem}
+.bounds{display:grid;gap:.5rem;font-size:.82rem;line-height:1.4;margin-top:1rem}
+.bounds div{padding:.5rem .7rem;border-radius:.5rem;background:var(--light)}
+.bounds b{font-weight:700}
+
+/* step 2: pricing */
+.quotecard .big{font-size:1.5rem;font-weight:700;letter-spacing:-.01em}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:.6rem 0 1rem}
+.kpi{background:var(--light);border-radius:.7rem;padding:.7rem .9rem}
+.kpi .l{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--space);font-weight:600}
+.kpi .v{font-size:1.2rem;font-weight:700;margin-top:.2rem;font-variant-numeric:tabular-nums}
+.handover li{margin:.2rem 0}
+.overlay{position:fixed;inset:0;background:rgba(40,42,48,.6);display:grid;place-items:center;z-index:50;padding:2vh 2vw}
+.overlay[hidden]{display:none}
+.calcwin{background:#fff;width:min(1280px,100%);height:min(94vh,980px);border-radius:.6rem;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.s3bar{background:#2b2e35;color:#fff;display:flex;align-items:center;gap:1rem;padding:.6rem 1.1rem}
+.s3bar .logo{font-weight:700;letter-spacing:.02em}
+.s3bar .logo span{color:var(--cyan)}
+.s3bar .crumb{font-size:.8rem;color:#c9ccd3}
+.simrib{background:repeating-linear-gradient(-45deg,#FFF4DC,#FFF4DC 10px,#fbe9c0 10px,#fbe9c0 20px);color:var(--amber);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.35rem 1.1rem}
+.calcbody{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) 22rem;gap:1.2rem;padding:1rem 1.2rem}
+.calcset{display:grid;grid-template-columns:repeat(3,auto);gap:1rem 1.6rem;align-items:start;margin-bottom:.9rem;justify-content:start}
+.fld label{display:block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--space);font-weight:600;margin-bottom:.3rem}
+.seg{display:inline-flex;background:var(--light);border-radius:2rem;padding:.2rem;gap:.15rem}
+.seg button{border:0;background:transparent;padding:.35rem .8rem;border-radius:2rem;font-weight:500;font-size:.8rem}
+.seg button.on{background:#fff;box-shadow:0 1px 4px rgba(51,51,51,.2);font-weight:700}
+.calc input[type=number]{width:5rem;border:1px solid var(--line);border-radius:.35rem;padding:.2rem .35rem;text-align:right;font-variant-numeric:tabular-nums;font-size:.85rem}
+.calc input.rate{width:7rem}
+.calc input.ovr{border-color:#d98e32;background:var(--amber-bg)}
+.calc tr.off td{color:#a3a6ad}
+.calc tr.off input[type=number]{opacity:.5}
+.svc{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.72rem;background:var(--cyan-15);color:#1f6a76;padding:.05rem .35rem;border-radius:.3rem;white-space:nowrap}
+.side{display:grid;gap:.9rem;align-content:start}
+.statusbox{border-radius:.7rem;padding:.8rem 1rem;font-size:.85rem;line-height:1.4}
+.statusbox.ok{background:var(--green-bg)}
+.statusbox.exc{background:var(--amber-bg)}
+.statusbox.stop{background:var(--red-bg)}
+.statusbox b{display:block;font-size:.95rem;margin-bottom:.15rem}
+.exc-item{border:1px solid var(--line);border-radius:.6rem;padding:.6rem .7rem;font-size:.82rem}
+.exc-item textarea,.why{width:100%;margin-top:.4rem;border:1px solid var(--line);border-radius:.4rem;padding:.4rem .5rem;font-size:.82rem;resize:vertical;min-height:2.6rem}
+.exc-item textarea:placeholder-shown{border-color:var(--red)}
+.calcfoot{display:flex;gap:.7rem;align-items:center;padding:.75rem 1.2rem;border-top:1px solid var(--line);background:var(--light)}
+
+/* step 3: document */
+.doctools{position:sticky;top:-1.3rem;z-index:5;background:#fff;padding:.6rem 0 .7rem;margin:-.6rem 0 .6rem;border-bottom:1px solid var(--line)}
+.jump{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.5rem}
+.jump button{border:1px solid var(--line);background:#fff;border-radius:1rem;padding:.12rem .6rem;font-size:.74rem}
+.jump button:hover{background:var(--cyan-15)}
+.legend{display:flex;flex-wrap:wrap;gap:.9rem;font-size:.76rem;color:var(--space);margin-top:.5rem}
+.legend span{display:inline-flex;align-items:center;gap:.35rem}
+.legend i{width:.8rem;height:.8rem;border-radius:.2rem;display:inline-block}
+.misspill{border:0;background:var(--red-bg);color:var(--red);font-weight:700;border-radius:2rem;padding:.4rem .9rem;font-size:.82rem}
+.misspill.zero{background:var(--green-bg);color:var(--green)}
+.savestate{font-size:.78rem;color:var(--space)}
+.banner{margin-bottom:.8rem}
+.paper{background:#fff;max-width:860px;margin:0 auto;box-shadow:0 2px 14px rgba(0,0,0,.16);padding:2.4rem 3rem 2.6rem;font-family:Arial,Helvetica,sans-serif;font-size:.86rem;line-height:1.45;color:#222}
+.paper .dhdr{display:flex;justify-content:space-between;font-size:.7rem;color:#8A8A8A;border-bottom:1px solid #ddd;padding-bottom:.4rem;margin-bottom:1.2rem}
+.paper .dhdr .mk{color:var(--red);font-weight:700}
+.paper .dhdr .mk.issued{color:var(--green)}
+.paper h1.dt{font-size:1.45rem;margin:.4rem 0 .3rem;line-height:1.2}
+.paper h4{font-size:1rem;margin:0 0 .5rem}
+.paper h5{font-size:.9rem;margin:.7rem 0 .3rem}
+.paper p{margin:0 0 .55rem}
+.paper ul{margin:.2rem 0 .6rem;padding-left:1.2rem}
+.paper table.dtb{border-collapse:collapse;width:100%;margin:.3rem 0 .6rem;font-size:.78rem}
+.paper table.dtb td,.paper table.dtb th{border:1px solid #444;padding:.18rem .4rem;vertical-align:top;text-align:left}
+.paper table.dtb th{background:#eee}
+.paper table.dtb .num{text-align:right;white-space:nowrap}
+.paper table.dtb tr.g td{background:#f3f3f3;font-weight:700}
+.paper table.dtb tr.tt td{font-weight:700}
+.dsec{position:relative;border-left:4px solid transparent;padding:.55rem 0 .45rem .9rem;margin:0 0 .5rem -1.3rem;border-radius:.2rem;transition:background .3s}
+.dsec.k-fixed{border-left-color:#9ea2ab}
+.dsec.k-data{border-left-color:var(--cyan)}
+.dsec.k-gen{border-left-color:#d98e32}
+.dsec.flash{background:#fff7d6}
+.dbadge{float:right;margin:0 0 .3rem .8rem;font:700 .6rem/1.3 var(--font);letter-spacing:.05em;text-transform:uppercase;padding:.15rem .5rem;border-radius:.7rem;white-space:nowrap}
+.k-fixed>.dbadge{background:#E4E6EA;color:var(--char)}
+.k-data>.dbadge{background:var(--cyan-15);color:#1f6a76}
+.k-gen>.dbadge{background:var(--amber-bg);color:var(--amber)}
+.ed{outline:1px dashed #e3b36a;outline-offset:3px;border-radius:.15rem;padding:.1rem .15rem;min-height:1.2rem}
+.ed:hover{background:#fffaf0}
+.ed:focus{outline:2px solid #d98e32;background:#fffaf0}
+.lockline{color:#333}
+.fx{background:#f4f5f7;border-radius:.2rem;padding:0 .2rem}
+.cv{background:var(--cyan-15);border-radius:.2rem;padding:0 .2rem}
+.mi{border:1.5px solid var(--red);background:var(--red-bg);border-radius:.25rem;padding:.08rem .35rem;font:inherit;font-size:.8rem;min-width:13rem;color:var(--char)}
+.mi.filled{border-color:#9ea2ab;background:#fff}
+.ph{color:var(--red);font-weight:700}
+.anno{clear:both;font:300 .72rem/1.35 var(--font);color:var(--space);background:var(--light);border-radius:.3rem;padding:.3rem .5rem;margin:.3rem 0 0}
+.anno.red{background:var(--red-bg);color:var(--red);font-weight:500}
+.anno b{font-weight:700}
+.genbox{max-width:46rem}
+.genlog{font-size:.88rem;line-height:1.7;margin:.6rem 0 0;padding-left:1.2rem}
+
+/* step 4: checks */
+.qagrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:1.2rem;align-items:start}
+.qasum{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:1rem}
+.qasum .kpi .v{font-size:1.5rem}
+.qasum .kpi.b .v{color:var(--red)}
+.qasum .kpi.w .v{color:var(--amber)}
+.qasum .kpi.p .v{color:var(--green)}
+.find{border:1px solid var(--line);border-left:5px solid var(--line);border-radius:.6rem;padding:.7rem .9rem;margin-bottom:.6rem;font-size:.86rem;line-height:1.4}
+.find.blocker{border-left-color:var(--red)}
+.find.warning{border-left-color:#d98e32}
+.find.info{border-left-color:#b9bcc4}
+.find .ft{font-weight:700;margin:.25rem 0 .15rem}
+.find .fd{color:var(--space);font-weight:300}
+.find .fa{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center;margin-top:.55rem}
+.find .fa input[type=text]{flex:1;min-width:12rem;border:1.5px solid var(--red);border-radius:.4rem;padding:.3rem .5rem;font-size:.84rem}
+.find.done{opacity:.75;border-left-color:var(--green)}
+.find .rid{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.7rem;color:var(--space);margin-left:.3rem}
+.qadoc{position:sticky;top:0;max-height:calc(100vh - 11rem);overflow:auto;border:1px solid var(--line);border-radius:.7rem;background:var(--light);padding:1rem}
+.qadoc .paper{font-size:.74rem;padding:1.6rem 2rem;box-shadow:none}
+details.ev{border:1px solid var(--line);border-radius:.7rem;padding:.6rem .9rem;margin-top:1rem;font-size:.84rem}
+details.ev summary{cursor:pointer;font-weight:700}
+.evrow{display:grid;grid-template-columns:11rem 1fr;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--line);line-height:1.4}
+.evrow:last-child{border:0}
+.passlist{margin:.3rem 0 0;padding-left:1.1rem;font-size:.82rem;color:var(--space);line-height:1.6}
+
+/* step 5: publish */
+.appr{display:grid;grid-template-columns:1fr auto;gap:.8rem;align-items:center;border:1px solid var(--line);border-radius:.6rem;padding:.7rem .9rem;margin-bottom:.6rem;font-size:.86rem}
+.appr .who{color:var(--space);font-weight:300;font-size:.8rem}
+.sp{border:1px solid var(--line);border-radius:.7rem;overflow:hidden}
+.sp-h{background:#036c70;color:#fff;padding:.5rem .9rem;font-weight:700;font-size:.85rem;display:flex;gap:.6rem;align-items:center}
+.sp-b{padding:.8rem .9rem;font-size:.84rem}
+.sp-path{font-size:.78rem;color:var(--space);margin:.1rem 0 .5rem}
+.done-card{background:var(--green-bg);border-radius:.8rem;padding:1rem 1.2rem}
+.log td:first-child{white-space:nowrap;color:var(--space)}
+
+/* modal + toast */
+.modal{background:#fff;border-radius:.8rem;padding:1.3rem 1.5rem;width:min(560px,100%);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h3{margin:0 0 .5rem;font-size:1.15rem}
+.modal p{margin:0 0 .8rem;font-size:.9rem;line-height:1.45;color:var(--space)}
+.toast{position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%) translateY(150%);background:var(--char);color:#fff;padding:.65rem 1.1rem;border-radius:.6rem;font-size:.86rem;z-index:80;transition:transform .3s;max-width:90vw}
+.toast.on{transform:translateX(-50%) translateY(0)}
+
+@media (max-width:1100px){
+  .chatgrid,.qagrid,.grid2{grid-template-columns:minmax(0,1fr)}
+  .calcbody{grid-template-columns:minmax(0,1fr)}
+  .qadoc{position:static;max-height:none}
+}
+@media (max-width:820px){
+  body{overflow:auto}
+  .app{display:block;height:auto}
+  .left{border-right:0;border-bottom:1px solid var(--line);padding:1rem 16px}
+  .stages{flex-direction:row;overflow-x:auto}
+  .stage{min-width:12rem}
+  .rhead{padding:1rem 16px;flex-direction:column;gap:.6rem}
+  .panels{flex:none}
+  .panel{position:static;padding:1rem 16px 2rem}
+  .chat{height:70vh}
+  .paper{padding:1.4rem 1rem}
+  .dsec{margin-left:-.6rem}
+  .kpis,.qasum{grid-template-columns:1fr 1fr}
+  .calcset{grid-template-columns:1fr}
+  .tscroll{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="left">
+    <div class="brand"><img src="data:image/png;base64,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" alt="Stone Three Digital"></div>
+    <h1>Prepare a proposal</h1>
+    <div class="uline"></div>
+    <p class="lede">How a BD user takes an enquiry to a published proposal in five steps. <b>Fictional:</b> client, quote and prices. <b>Simulated:</b> Claude, S3Central and SharePoint. Nothing leaves this page.</p>
+    <div class="session" id="session"></div>
+    <ol class="stages" id="stages"></ol>
+    <div class="lfoot">
+      <div class="note">Reference: <a href="reference/index_7.html" target="_blank" rel="noopener">earlier prototype walkthrough</a> (unchanged, includes the test evidence).<br><button class="textbtn" id="resetAll" type="button">Reset demo</button></div>
+      <span class="internal-label">INTERNAL DEMO</span>
+    </div>
+  </aside>
+  <main class="right">
+    <header class="rhead">
+      <div><div class="kicker" id="kicker"></div><h2 id="title"></h2><p class="sub" id="sub"></p></div>
+      <div class="chip" id="chip"></div>
+    </header>
+    <div class="panels">
+      <section class="panel" id="p0">
+        <div class="chatgrid">
+          <div class="chat">
+            <div class="chat-h">New proposal · conversation with Claude <span class="spacer"></span><span class="tag sim">Scripted simulation</span></div>
+            <div class="chat-msgs" id="msgs" role="log" aria-live="polite"></div>
+            <div class="chat-act" id="acts"></div>
+            <form class="chat-form" id="chatForm"><textarea id="chatIn" aria-label="Message" placeholder="Describe what you need, as you would to a colleague…"></textarea><button class="btn primary" type="submit">Send</button></form>
+          </div>
+          <div class="card req" id="req"></div>
+        </div>
+      </section>
+      <section class="panel" id="p1"></section>
+      <section class="panel" id="p2"></section>
+      <section class="panel" id="p3"></section>
+      <section class="panel" id="p4"></section>
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="calcOv" hidden><div class="calcwin calc" role="dialog" aria-modal="true" aria-label="S3Central quotation calculator (simulated)" id="calcWin"></div></div>
+<div class="overlay" id="modalOv" hidden><div class="modal" role="dialog" aria-modal="true" id="modal"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =====================================================================
+   Proposal workflow demonstration. Everything here is offline:
+   no call is made to Claude, S3Central or SharePoint. Client, quote,
+   rates and project codes are fictional (taken from the FIC0001
+   demonstration data in the earlier prototype).
+   ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const zar=n=>(n<0?'−':'')+'ZAR '+Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const now=()=>new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+const clone=o=>JSON.parse(JSON.stringify(o));
+const KEY='s3-proposal-workflow-demo-v1';
+
+const DOC_NO='FIC0002-1400-001', DOC_DATE='30 October 2026', VALID_TO='29 November 2026', QUOTE_NO='QUO-FICTIONAL-002';
+const EXAMPLE='Example Mining want Froth Sensors on Rougher Bank C, all six cells, same setup as the FIC0001 job on Banks A and B. No pulp sensors this time. They asked for the objectives and commissioning criteria to be in the proposal.';
+
+/* Froth Sensor entry from "Smart Sensor Solution Objectives and Commissioning Success Criteria v1.0" (Peter's workbook), as written. */
+const WB={product:'Froth Sensor',pos:'Above flotation cell, froth surface',
+  goals:['Monitor froth velocity, quality and stability in real time','Detect when the cell is not producing','Support recovery optimisation and APC'],
+  direct:['Froth velocity over launder lip','Froth height above launder lip','Froth velocity stability','Froth bubble size','Froth bubble coverage','Froth colour?'],
+  derived:['Froth State: Cell not producing'],
+  kom:['Froth velocity measurements respond consistently to changes in air/level','Froth height signal is stable and usable for level control','Bubble size and colour correlate with operator visual assessments of froth quality']};
+
+/* Fictional price list. Rates reuse the FIC0001 demonstration rates; server and DAP delivery lines reuse the prototype's simulated calculator. */
+const LIST=[
+ {id:'H1',grp:'Hardware',svc:'DEMO-HW',desc:'Froth Sensor',unit:'each',rate:50000,qty:6},
+ {id:'H2',grp:'Hardware',svc:'DEMO-HW',desc:'Froth Sensor critical spare',unit:'each',rate:50000,qty:1},
+ {id:'H3',grp:'Hardware',svc:'DEMO-HW',desc:'Field control panel with 8-port PoE switch',unit:'each',rate:100000,qty:1},
+ {id:'H4',grp:'Hardware',svc:'DEMO-HW',desc:'Sensor server, Stone Three-supplied',unit:'each',rate:90000,qty:1,auto:'server'},
+ {id:'H5',grp:'Hardware',svc:'DEMO-HW',desc:'Packaging and documentation',unit:'lot',rate:10000,qty:1},
+ {id:'H6',grp:'Hardware',svc:'DEMO-HW',desc:'Delivery to site, DAP, incl. transport and insurance',unit:'lot',rate:45000,qty:1,auto:'ship'},
+ {id:'S1',grp:'Project Services',svc:'DEMO-SVC-001.1',desc:'Sensor Project Services · cold commissioning visit, 1 engineer x 5 days on site',unit:'visit',rate:75000,qty:1},
+ {id:'S2',grp:'Project Services',svc:'DEMO-SVC-001.1',desc:'Sensor Project Services · hot commissioning visit, 1 engineer x 5 days on site',unit:'visit',rate:75000,qty:1},
+ {id:'S3',grp:'Project Services',svc:'DEMO-SVC-001.1',desc:'Sensor Project Services · project control, management and documentation',unit:'day',rate:15000,qty:6},
+ {id:'S4',grp:'Project Services',svc:'DEMO-SVC-001.1',desc:'Sensor Project Services · remote software configuration and calibration',unit:'day',rate:15000,qty:9},
+ {id:'S5',grp:'Project Services',svc:'DEMO-SVC-001.1',desc:'Sensor Project Services · OPC integration commissioning',unit:'day',rate:15000,qty:2,opt:true},
+ {id:'S6',grp:'Project Services',svc:'DEMO-SVC-001.2',desc:'APC Project Services · scope as agreed in an APC schedule',unit:'day',rate:15000,qty:10,opt:true},
+ {id:'L1',grp:'Annual subscription',svc:'DEMO-LIC',desc:'Annual Froth Sensor licence incl. remote support',unit:'sensor-year',rate:12000,qty:6}
+];
+const GROUPS=['Hardware','Project Services','Annual subscription'];
+const FIELDS=[
+ {k:'place',label:'named place of delivery (DAP)',sec:'s6',ex:'Demo Concentrator stores, South Africa (FICTIONAL)'},
+ {k:'reg',label:'client company registration',sec:'sb',ex:'1999/000000/06 (FICTIONAL)'},
+ {k:'vat',label:'client VAT number',sec:'sb',ex:'4000000000 (FICTIONAL)'},
+ {k:'postal',label:'client postal address',sec:'sb',ex:'PO Box 0000, Demo Town (FICTIONAL)'},
+ {k:'acc',label:'client accounts contact',sec:'sb',ex:'B. Example, accounts@example.invalid'}
+];
+
+/* ---------------- session state ---------------- */
+function fresh(){return{step:0,maxStep:0,chat:[],stage:'start',request:'',ref:null,notes:[],
+  ans:{server:null,opc:null,sol:null},quote:null,quotes:[],draft:null,qa:null,appr:{},log:[],published:null,savedAt:null,dirty:false,calcFrom:1};}
+let S=fresh();
+const log=(cat,text,internal=false)=>S.log.push({t:now(),cat,text,internal});
+function persist(msg){
+  S.savedAt=new Date().toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); S.dirty=false;
+  if(S.draft) S.draft.ver=(S.draft.ver||1)+1;
+  try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+  toast(msg||'Saved. You can close this page and resume later.'); renderAll();
+}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>el.classList.remove('on'),3400);}
+
+/* ---------------- shell: steps, header, session ---------------- */
+const STEPS=[
+ {t:'Conversation',title:'Describe the proposal',chip:'Claude · scripted simulation',sub:'Say what you need in your own words and point to an earlier quote. Claude extracts the requirements, sets out what it will and will not reuse, and asks only what it cannot work out.'},
+ {t:'Pricing',title:'Price it in S3Central',chip:'S3Central · simulated',sub:'The calculator opens with the requirements already loaded. Adjust quantities, services, prices and discounts, then return to this proposal session.'},
+ {t:'Drafting',title:'Draft the proposal',chip:'Fictional draft',sub:'Fixed clauses are locked, scope and pricing come from the saved quote, and Claude’s sections are yours to edit. Missing information is flagged where it belongs. Save at any point.'},
+ {t:'Quality assurance',title:'Check before issue',chip:'Checks · simulated',sub:'Each finding points at the proposal. Blockers must be fixed. Warnings can be fixed, or dismissed with a reason that is recorded.'},
+ {t:'Publication',title:'Approve and publish',chip:'SharePoint · simulated',sub:'Collect only the approvals this proposal needs, confirm the decision record and publish the issued version.'}
+];
+function stepStatus(i){
+  const d=S.draft;
+  if(i===0) return S.stage==='done'?'Requirements confirmed':'Describe what you need';
+  if(i===1) return S.quote?`${QUOTE_NO} Rev ${S.quote.rev}`:'Price in S3Central';
+  if(i===2){ if(!d) return 'Generate and edit'; const m=missingCount(); return (S.published?'Issued · ':'')+(m?`${m} item${m>1?'s':''} missing`:'No missing fields')+(S.dirty?' · unsaved':''); }
+  if(i===3){ if(!S.qa) return 'Submit for checking'; const c=qaCounts(); return c.b+c.w?`${c.b} blocker${c.b!==1?'s':''} · ${c.w} warning${c.w!==1?'s':''} open`:'All findings resolved'; }
+  return S.published?'Published (simulated)':'Approvals and SharePoint';
+}
+function renderShell(){
+  $('#stages').innerHTML=STEPS.map((s,i)=>{
+    const lock=i>S.maxStep, cls=['stage',i===S.step?'active':'',lock?'locked':'',(i<S.maxStep||(i===4&&S.published))&&i!==S.step?'done':''].join(' ');
+    return `<li><button class="${cls}" data-i="${i}" ${lock?'aria-disabled="true"':''}><span class="n">${lock?'🔒':i+1}</span><span><div class="t">${s.t}</div><div class="d">${esc(stepStatus(i))}</div></span></button></li>`;}).join('');
+  $$('.stage').forEach(b=>b.onclick=()=>{const i=+b.dataset.i; if(i<=S.maxStep) go(i);});
+  const s=STEPS[S.step];
+  $('#kicker').textContent=`Step ${S.step+1} of 5`; $('#title').textContent=s.title; $('#sub').textContent=s.sub; $('#chip').textContent=s.chip;
+  $('#session').innerHTML=`<div class="sid">Proposal session PS-0142 <button class="btn sm" id="saveSess" type="button">Save</button></div>
+   <div class="sv">${S.ref?'Example Mining Co · Rougher Bank C':'New proposal'}</div>
+   <div>${S.ref?`Project FIC0002 · ${DOC_NO}`:'No project linked yet'}</div>
+   <div class="saved">${S.savedAt?'Last saved '+esc(S.savedAt):'Not saved yet'}${S.dirty?' · unsaved changes':''}</div>`;
+  $('#saveSess').onclick=()=>persist();
+}
+function go(i){S.step=i; renderAll(); const p=$('#p'+i); if(p) p.scrollTop=0;}
+function unlock(i){S.maxStep=Math.max(S.maxStep,i);}
+function renderAll(){
+  renderShell();
+  $$('.panel').forEach((p,k)=>p.classList.toggle('active',k===S.step));
+  renderChat(); renderPricing(); renderDraft(); renderQA(); renderPublish();
+}
+
+/* =====================================================================
+   STEP 1 · CONVERSATION
+   ===================================================================== */
+const say=(who,html)=>S.chat.push({who,html});
+const FILES={
+  prop:{name:'FIC0001-1400-001_Rev01.docx',kind:'doc',meta:'Proposal · SharePoint › Sales › Example Mining Co › FIC0001 › 1400 Proposal Docs · 12 Oct 2026'},
+  quote:{name:'QUO-FICTIONAL-001.pdf',kind:'pdf',meta:'Quotation · SharePoint › Sales › Example Mining Co › FIC0001 › Quotes · 09 Oct 2026'},
+  upload:{name:'QUO-FICTIONAL-001.pdf',kind:'pdf',meta:'Attached from your computer · 214 KB'}
+};
+const fileCard=(f,btn)=>`<div class="file"><span class="ic ${f.kind==='pdf'?'pdf':''}">${f.kind==='pdf'?'PDF':'DOCX'}</span><span class="fm"><b>${esc(f.name)}</b><span class="small">${esc(f.meta)}</span></span>${btn||''}</div>`;
+function chatInit(){say('claude','What proposal are we preparing? Describe it the way you would to a colleague. You can attach an existing quote, or tell me which earlier job it is like and I will find it in SharePoint.');}
+
+function renderChat(){
+  $('#msgs').innerHTML=S.chat.map(m=>m.who==='sys'?`<div class="msg sys">${m.html}</div>`:`<div class="msg ${m.who}"><span class="who">${m.who==='you'?'You':'Claude'}</span>${m.html}</div>`).join('');
+  $('#msgs').scrollTop=$('#msgs').scrollHeight;
+  const A=$('#acts'); let h='';
+  const b=(k,l,p)=>`<button type="button" class="btn sm ${p?'primary':''}" data-a="${k}">${l}</button>`;
+  if(S.stage==='start') h=b('example','Use the example request',true)+b('attach','📎 Attach a quote (simulated)')+b('sp','Find in SharePoint (simulated)');
+  else if(S.stage==='need_req') h=b('example','Use the example request',true);
+  else if(S.stage==='need_ref') h=b('attach','📎 Attach a quote instead');
+  else if(S.stage==='q_server') h=`<div class="q">Sensor server</div>`+b('srv_s3','Stone Three supplies it (standard)',true)+b('srv_client','Client supplies it (exception)');
+  else if(S.stage==='q_opc') h=`<div class="q">OPC integration commissioning</div>`+b('opc_S3','Stone Three',true)+b('opc_Client','Client')+b('opc_later','Decide later (flag it)');
+  else if(S.stage==='q_sol') h=`<div class="q">Objectives and commissioning criteria</div>`+b('sol_yes','Include them',true)+b('sol_no','Leave them out');
+  else if(S.stage==='done') h=b('toPricing','Open the S3Central calculator →',true);
+  A.innerHTML=h;
+  A.querySelectorAll('[data-a]').forEach(x=>x.onclick=()=>chatAct(x.dataset.a));
+  $$('#msgs [data-pick]').forEach(x=>x.onclick=()=>chatAct('pick_'+x.dataset.pick));
+  renderReq();
+}
+function chatAct(a){
+  if(a==='example'){ $('#chatIn').value=EXAMPLE; $('#chatIn').focus(); return; }
+  if(a==='attach'||a==='sp'){
+    if(a==='attach'){ say('you','Here is the quote from the earlier job.'+fileCard(FILES.upload)); return setRef('upload'); }
+    say('you','It is like the FIC0001 job. Find it in SharePoint.');
+    say('claude','These match in SharePoint (simulated search, fictional files):'+fileCard(FILES.prop,'<button class="btn sm" data-pick="prop" type="button">Use</button>')+fileCard(FILES.quote,'<button class="btn sm" data-pick="quote" type="button">Use</button>'));
+    S.stage=S.request?'need_ref':'pick_wait'; return renderAll();
+  }
+  if(a.startsWith('pick_')){ const k=a.slice(5); say('you','Use '+esc(FILES[k].name)+'.'); return setRef(k); }
+  if(a==='srv_s3'||a==='srv_client'){
+    S.ans.server=a==='srv_s3'?'s3':'client';
+    say('you',S.ans.server==='s3'?'Stone Three supplies the server.':'The client will supply the server.');
+    log('Requirement',S.ans.server==='s3'?'Sensor server: Stone Three-supplied (standard)':'Sensor server: client-supplied. Exception: motivation and approval needed');
+    say('claude',(S.ans.server==='client'?'Noted. That is an exception to the kickoff standard, so the calculator will ask for a motivation and it will need approval before issue. ':'Good, that is the standard. ')+'Who commissions the OPC integration to site systems? FIC0001 left this open (TBC).');
+    S.stage='q_opc'; return renderAll();
+  }
+  if(a.startsWith('opc_')){
+    S.ans.opc=a.slice(4);
+    say('you',{S3:'Stone Three commissions it.',Client:'The client commissions it.',later:'I will decide later.'}[S.ans.opc]);
+    log('Requirement','OPC integration commissioning: '+{S3:'Stone Three',Client:'Client',later:'not decided (flagged)'}[S.ans.opc]);
+    say('claude',(S.ans.opc==='S3'?'I will add the OPC commissioning service to the quote. ':S.ans.opc==='later'?'I will flag it in the draft. It must be decided before the proposal can be issued. ':'')+'Last one: Peter’s workbook <i>Smart Sensor Solution Objectives and Commissioning Success Criteria v1.0</i> has a Froth Sensor entry. Shall I include its objectives and candidate commissioning criteria? They are workbook wording, not approved standard text, and the criteria would be presented as candidates to agree at kickoff.');
+    S.stage='q_sol'; return renderAll();
+  }
+  if(a==='sol_yes'||a==='sol_no'){
+    S.ans.sol=a==='sol_yes'?'yes':'no';
+    say('you',S.ans.sol==='yes'?'Include them.':'Leave them out.');
+    log('Requirement',S.ans.sol==='yes'?'Include solution objectives and candidate commissioning criteria (workbook v1.0, Froth Sensor)':'Workbook objectives and criteria not included');
+    say('claude','That is everything I need. I did not ask about currency, delivery, payment or tax because the standards apply: ZAR, DAP to site, payment 30 days from invoice, prices excluding all taxes. Open the calculator to price it; the requirements go with you.');
+    S.stage='done'; unlock(1); return renderAll();
+  }
+  if(a==='toPricing'){ go(1); openCalc(1); }
+}
+function setRef(k){
+  S.ref=k;
+  log('Requirement','Reference: FIC0001-1400-001 Rev01 / QUO-FICTIONAL-001 (structure, client details, responsibility matrix only)');
+  if(!S.request){ say('claude','I have <b>'+esc(FILES[k].name)+'</b>. What is this proposal for, and what is different from that job?'); S.stage='need_req'; return renderAll(); }
+  extract();
+}
+function extract(){
+  S.chat.push({who:'sys',html:'Simulated: Claude reads the reference and extracts requirements'});
+  say('claude',`I have read <b>FIC0001-1400-001 Rev01</b> and filled in the requirements on the right.<ul><li><b>Reusing:</b> client and site details, document structure, responsibility matrix.</li><li><b>Not carrying forward:</b> its prices, its Ex Works delivery and its client-supplied server. Under the 29 October kickoff requirements those are now exceptions.</li><li><b>Assumed:</b> one field control panel, since six sensors fit its eight ports. You can change that in the calculator.</li></ul>Three questions. First: FIC0001 had the client supply the sensor server. The standard is now a Stone Three-supplied server. Which applies here?`);
+  S.stage='q_server'; renderAll();
+}
+$('#chatForm').addEventListener('submit',e=>{
+  e.preventDefault(); const v=$('#chatIn').value.trim(); if(!v) return; $('#chatIn').value='';
+  say('you',esc(v));
+  if(!S.request && ['start','need_req','pick_wait'].includes(S.stage)){
+    S.request=v; log('Requirement','Request recorded: “'+v+'”');
+    if(v!==EXAMPLE) S.chat.push({who:'sys',html:'Simulation note: your wording is recorded verbatim; the extraction below follows the scripted example scenario.'});
+    if(S.ref) return extract();
+    if(S.stage==='pick_wait'){ S.stage='need_ref'; say('claude','Thanks. Pick the earlier proposal above to work from.'); return renderAll(); }
+    say('claude','Six Froth Sensors on Rougher Bank C, no Pulp Sensors, same setup as FIC0001. I will use FIC0001 for structure and client details, but not its prices. These match in SharePoint (simulated search, fictional files):'+fileCard(FILES.prop,'<button class="btn sm" data-pick="prop" type="button">Use</button>')+fileCard(FILES.quote,'<button class="btn sm" data-pick="quote" type="button">Use</button>'));
+    S.stage='need_ref'; return renderAll();
+  }
+  S.notes.push(v); log('Requirement','Note for reviewer: “'+v+'”');
+  say('claude','Noted, and added to the requirements as a note for the reviewer. (Simulated: extra free text is recorded, not interpreted.)');
+  renderAll();
+});
+function renderReq(){
+  const R=$('#req'), src=(c,l)=>`<span class="src ${c}">${l}</span>`;
+  if(!S.request&&!S.ref){R.innerHTML=`<h3>Requirements</h3><p class="empty">Claude fills this in as you talk. Each item shows where it came from, so you can see what was said, reused, assumed or still open.</p>`;return;}
+  const rows=[];
+  if(S.ref) rows.push(['Client · site','Example Mining Co (FICTIONAL), Demo Concentrator, South Africa',src('ref','FIC0001')]);
+  if(S.ref&&S.request) rows.push(['Project','FIC0002 · Rougher Bank C',src('s3c','S3Central record')]);
+  if(S.request){ rows.push(['Froth Sensors','6 · Rougher Bank C, cells 1–6',src('you','You said')]); rows.push(['Pulp Sensors','None',src('you','You said')]); }
+  if(S.ref&&S.request){ rows.push(['Critical spare','1 Froth Sensor',src('ref','FIC0001')]); rows.push(['Field control panel','1 (8 ports, 6 sensors)',src('asm','Assumed')]);
+    rows.push(['Commercial','ZAR · DAP to site · payment 30 days from invoice · prices exclude all taxes',src('std','Standard')]);
+    rows.push(['Sensor server',S.ans.server?(S.ans.server==='s3'?'Stone Three-supplied':'Client-supplied (exception)'):'—',S.ans.server?src('ans','Your answer'):src('pend','Question')]);
+    rows.push(['OPC commissioning',S.ans.opc?{S3:'Stone Three',Client:'Client',later:'Not decided'}[S.ans.opc]:'—',S.ans.opc?src(S.ans.opc==='later'?'pend':'ans',S.ans.opc==='later'?'Open':'Your answer'):src('pend','Question')]);
+    rows.push(['Workbook content',S.ans.sol?(S.ans.sol==='yes'?'Froth Sensor objectives and candidate criteria':'Not included'):'—',S.ans.sol?src('ans','Your answer'):src('pend','Question')]); }
+  S.notes.forEach(n=>rows.push(['Note',esc(n),src('you','You said')]));
+  R.innerHTML=`<h3>Requirements</h3><dl>${rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}${r[2]}</dd>`).join('')}</dl>
+   ${S.ref&&S.request?`<div class="bounds"><div><b>Reused from FIC0001:</b> client and site details, structure, responsibility matrix.</div><div><b>Not carried forward:</b> prices, discounts, Ex Works delivery, client-server condition.</div><div><b>Not asked:</b> anything the standards already answer. Prices come only from S3Central.</div></div>`:''}`;
+}
+
+/* =====================================================================
+   STEP 2 · PRICING (simulated S3Central calculator)
+   ===================================================================== */
+let C=null; // calculator working copy
+function newCalc(){
+  const base=S.quote?clone(S.quote.calc):{ship:'DAP',server:S.ans.server||'s3',disc:0,why:{},lines:LIST.map(l=>({...l,list:l.rate,on:l.id==='S5'?S.ans.opc==='S3':!l.opt}))};
+  base.server=S.ans.server||base.server; // the session answer leads
+  return base;
+}
+function lineOn(l,c){ if(l.auto==='server') return c.server==='s3'; if(l.auto==='ship') return c.ship==='DAP'; return l.on; }
+function calcEval(c){
+  const L=c.lines.map(l=>({...l,on:lineOn(l,c),amt:l.qty*l.rate}));
+  const sum=g=>L.filter(l=>l.on&&l.grp===g).reduce((a,l)=>a+l.amt,0);
+  const hw=sum('Hardware'),ps=sum('Project Services'),lic=sum('Annual subscription');
+  const discAmt=c.disc>0?-Math.round((hw+ps)*c.disc)/100:0;
+  const ovr=L.filter(l=>l.on&&l.rate!==l.list).map(l=>l.id);
+  const ex=[];
+  if(c.ship==='EXW') ex.push({k:'ship',label:'Ex Works delivery instead of DAP'});
+  if(c.server==='client') ex.push({k:'server',label:'Client-supplied server or VM'});
+  if(c.disc>0) ex.push({k:'disc',label:c.disc+'% discount on once-off total'});
+  if(ovr.length) ex.push({k:'ovr',label:'Price differs from list on '+ovr.join(', ')});
+  ex.forEach(e=>e.why=(c.why[e.k]||'').trim());
+  const missing=ex.filter(e=>!e.why);
+  return {L,hw,ps,lic,discAmt,once:hw+ps+discAmt,ex,missing};
+}
+const calcStatus=r=>r.missing.length?['stop','Motivation required','Add a motivation for each exception to save the quote.']:r.ex.length?['exc','Exceptions recorded','The quote can be saved. Each exception goes to approval before publication.']:['ok','Standard quote','No exceptions. Only the normal sign-off will be needed.'];
+const calcHint=(r,rev)=>r.missing.length?'Add the missing motivation to save':'Saves '+QUOTE_NO+' Rev '+rev+' and returns to the proposal';
+function openCalc(from){ S.calcFrom=from; C=newCalc(); $('#calcOv').hidden=false; renderCalc(); }
+function closeCalc(){ $('#calcOv').hidden=true; C=null; }
+function renderCalc(){
+  const r=calcEval(C), nextRev=S.quote?String.fromCharCode(S.quote.rev.charCodeAt(0)+1):'A';
+  const segB=(k,v,l)=>`<button type="button" class="${C[k]===v?'on':''}" data-k="${k}" data-v="${v}">${l}</button>`;
+  let rows='';
+  GROUPS.forEach(g=>{
+    rows+=`<tr class="grp"><td colspan="7">${g}${g==='Project Services'?' <span class="svc">DEMO-SVC-001</span>':''}</td></tr>`;
+    r.L.filter(l=>l.grp===g).forEach(l=>{
+      const auto=!!l.auto;
+      rows+=`<tr class="${l.on?'':'off'}"><td><input type="checkbox" data-on="${l.id}" ${l.on?'checked':''} ${auto?'disabled title="Set by the delivery or server option"':''} aria-label="Include ${esc(l.desc)}"></td>
+       <td><span class="svc">${l.svc}</span></td><td>${esc(l.desc)} <span class="small">(FICTIONAL RATE)</span></td>
+       <td class="num"><input type="number" min="0" step="1" value="${l.qty}" data-q="${l.id}" aria-label="Quantity"></td><td>${esc(l.unit)}</td>
+       <td class="num"><input type="number" min="0" step="500" class="rate ${l.rate!==l.list?'ovr':''}" value="${l.rate}" data-r="${l.id}" aria-label="Rate"></td>
+       <td class="num">${l.on?zar(l.amt):'—'}</td></tr>`;});
+  });
+  const st=calcStatus(r);
+  $('#calcWin').innerHTML=`
+   <div class="s3bar"><span class="logo">S3<span>Central</span></span><span class="crumb">Quotations › FIC0002 Rougher Bank C › ${QUOTE_NO} › <b style="color:#fff">Rev ${nextRev} (editing)</b></span><span class="spacer"></span><span class="crumb">Linked to proposal session PS-0142</span></div>
+   <div class="simrib">Simulated S3Central · fictional rates · no connection is made</div>
+   <div class="calcbody">
+    <div>
+     <div class="calcset">
+      <div class="fld"><label>Delivery</label><div class="seg">${segB('ship','DAP','DAP to site')}${segB('ship','EXW','Ex Works')}</div></div>
+      <div class="fld"><label>Sensor server</label><div class="seg">${segB('server','s3','Stone Three')}${segB('server','client','Client')}</div></div>
+      <div class="fld"><label for="cDisc">Discount, once-off %</label><input type="number" id="cDisc" min="0" max="30" step="1" value="${C.disc}"></div>
+     </div>
+     <div class="tscroll"><table class="t"><thead><tr><th></th><th>Service ID</th><th>Line</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>${rows}</tbody></table></div>
+     <p class="small">Tick optional services to add them. Changing a rate from the list price is allowed, but it becomes an exception.</p>
+    </div>
+    <div class="side">
+     <div class="statusbox ${st[0]}" id="cStat"><b>${st[1]}</b>${st[2]}</div>
+     <table class="t"><tbody>
+      <tr><td>Hardware</td><td class="num">${zar(r.hw)}</td></tr><tr><td>Project Services</td><td class="num">${zar(r.ps)}</td></tr>
+      ${r.discAmt?`<tr><td>Discount ${C.disc}%</td><td class="num">${zar(r.discAmt)}</td></tr>`:''}
+      <tr class="tot"><td>Once-off total</td><td class="num">${zar(r.once)}</td></tr><tr class="tot"><td>Annual subscription</td><td class="num">${zar(r.lic)}</td></tr>
+     </tbody></table>
+     <p class="small" style="margin:0">All prices exclude all taxes. Domestic client: no withholding-tax rule applies.</p>
+     ${r.ex.length?`<div><div class="h3">Exceptions</div>${r.ex.map(e=>`<div class="exc-item"><b>${esc(e.label)}</b><textarea data-why="${e.k}" placeholder="Motivation (required)">${esc(C.why[e.k]||'')}</textarea></div>`).join('')}
+       <p class="small"><span class="tag int">Internal</span> Motivations go to the approver and the decision record, never into the client document.</p></div>`:''}
+    </div>
+   </div>
+   <div class="calcfoot"><button class="btn" type="button" id="cCancel">Cancel</button><span class="spacer"></span><span class="small" id="cHint">${calcHint(r,nextRev)}</span><button class="btn primary" type="button" id="cSave" ${r.missing.length?'disabled':''}>Save quote and return to proposal</button></div>`;
+  const W=$('#calcWin');
+  W.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{C[b.dataset.k]=b.dataset.v; renderCalc();});
+  W.querySelectorAll('[data-on]').forEach(i=>i.onchange=()=>{C.lines.find(l=>l.id===i.dataset.on).on=i.checked; renderCalc();});
+  const num=(sel,key)=>W.querySelectorAll(sel).forEach(i=>i.onchange=()=>{const v=Math.max(0,Math.round(+i.value||0)); C.lines.find(l=>l.id===i.dataset[key])[key==='q'?'qty':'rate']=v; renderCalc();});
+  num('[data-q]','q'); num('[data-r]','r');
+  $('#cDisc').onchange=()=>{C.disc=Math.max(0,Math.min(30,Math.round(+$('#cDisc').value||0))); renderCalc();};
+  W.querySelectorAll('[data-why]').forEach(t=>t.oninput=()=>{C.why[t.dataset.why]=t.value; const r2=calcEval(C), s2=calcStatus(r2);
+    $('#cSave').disabled=r2.missing.length>0; $('#cStat').className='statusbox '+s2[0]; $('#cStat').innerHTML=`<b>${s2[1]}</b>${s2[2]}`; $('#cHint').textContent=calcHint(r2,nextRev);});
+  $('#cCancel').onclick=closeCalc; $('#cSave').onclick=saveQuote;
+}
+function saveQuote(){
+  const r=calcEval(C), rev=S.quote?String.fromCharCode(S.quote.rev.charCodeAt(0)+1):'A';
+  S.quote={rev,at:now(),calc:clone(C),lines:r.L.filter(l=>l.on).map(l=>({id:l.id,grp:l.grp,svc:l.svc,desc:l.desc,qty:l.qty,unit:l.unit,rate:l.rate,amt:l.amt})),
+    hw:r.hw,ps:r.ps,lic:r.lic,disc:C.disc,discAmt:r.discAmt,once:r.once,ship:C.ship,server:C.server,ex:r.ex.map(e=>({k:e.k,label:e.label,why:e.why}))};
+  S.quotes.push({rev,at:S.quote.at,once:r.once,lic:r.lic,ex:r.ex.length});
+  if(C.server!==S.ans.server){ S.ans.server=C.server; log('Requirement','Sensor server changed in calculator: '+(C.server==='s3'?'Stone Three-supplied':'client-supplied')); }
+  log('Pricing',`${QUOTE_NO} Rev ${rev} saved in S3Central: once-off ${zar(r.once)}, annual ${zar(r.lic)}`);
+  r.ex.forEach(e=>log('Pricing',`Exception: ${e.label}. Motivation: “${e.why}”`,true));
+  S.dirty=true; unlock(2); closeCalc();
+  const from=S.calcFrom; S.step=from;
+  toast(S.draft&&S.draft.q.rev!==rev?`Rev ${rev} saved. The draft still shows Rev ${S.draft.q.rev} pricing; refresh it in the draft.`:`Back in the proposal session. ${QUOTE_NO} Rev ${rev} is attached.`);
+  renderAll();
+}
+function renderPricing(){
+  const P=$('#p1');
+  if(!S.quote){
+    P.innerHTML=`<div class="grid2"><div class="card"><h3>Handed to the calculator</h3><ul class="handover">
+      <li>Project FIC0002 · Example Mining Co (FICTIONAL) · Rougher Bank C</li><li>6 Froth Sensors, 1 critical spare, 1 field control panel</li>
+      <li>Sensor server: ${S.ans.server==='client'?'client-supplied (exception)':'Stone Three-supplied'}</li><li>OPC commissioning: ${{S3:'Stone Three (service line added)',Client:'Client',later:'not decided'}[S.ans.opc]||'—'}</li>
+      <li>DAP to site · ZAR · prices exclude all taxes</li></ul>
+      <div class="row" style="margin-top:1rem"><button class="btn primary" type="button" id="openCalc">Open S3Central calculator</button></div></div>
+     <div class="stack"><div class="callout"><b>Prices come only from the calculator.</b> Claude does not calculate, estimate or change prices, and old FIC0001 prices are not reused. The proposal copies the saved quote unchanged.</div>
+     <div class="callout amber"><b>Exceptions stay possible.</b> You can apply a discount, override a rate, quote Ex Works or accept a client server. Each needs a short motivation, kept internal, and goes to approval before publication.</div></div></div>`;
+    $('#openCalc').onclick=()=>openCalc(1); return;
+  }
+  const q=S.quote;
+  P.innerHTML=`<div class="grid2"><div class="card quotecard"><h3>Quote attached to this proposal</h3>
+     <div class="big">${QUOTE_NO} Rev ${q.rev}</div><div class="small">Saved in S3Central (simulated) at ${esc(q.at)} · ${q.lines.length} lines</div>
+     <div class="kpis"><div class="kpi"><div class="l">Once-off</div><div class="v">${zar(q.once)}</div></div><div class="kpi"><div class="l">Annual</div><div class="v">${zar(q.lic)}</div></div><div class="kpi"><div class="l">Exceptions</div><div class="v">${q.ex.length}</div></div></div>
+     ${q.ex.length?`<div class="stack" style="gap:.4rem">${q.ex.map(e=>`<div class="exc-item"><b>${esc(e.label)}</b> <span class="tag int">Internal</span><div class="small">Motivation: “${esc(e.why)}” · approval required before publication</div></div>`).join('')}</div>`:'<div class="callout ok">Standard quote. No exceptions, so only the normal sign-off applies.</div>'}
+     <div class="row" style="margin-top:1rem"><button class="btn" type="button" id="reCalc">Reopen calculator (new revision)</button><span class="spacer"></span><button class="btn primary" type="button" id="toDraft">Continue to drafting →</button></div></div>
+    <div class="stack"><div class="card"><h3>Revision history</h3><table class="t"><thead><tr><th>Rev</th><th>Saved</th><th class="num">Once-off</th><th class="num">Annual</th><th class="num">Exceptions</th></tr></thead><tbody>
+      ${S.quotes.map(x=>`<tr><td><b>${x.rev}</b></td><td>${esc(x.at)}</td><td class="num">${zar(x.once)}</td><td class="num">${zar(x.lic)}</td><td class="num">${x.ex}</td></tr>`).join('')}</tbody></table>
+      ${S.draft&&S.draft.q.rev!==q.rev?`<div class="callout warn" style="margin-top:.8rem">The draft uses Rev ${S.draft.q.rev}. Refresh it in the draft so pricing, scope and terms match Rev ${q.rev}.</div>`:''}</div></div></div>`;
+  $('#reCalc').onclick=()=>openCalc(1); $('#toDraft').onclick=()=>go(2);
+}
+
+/* =====================================================================
+   STEP 3 · DRAFTING
+   ===================================================================== */
+const qty=(q,id)=>(q.lines.find(l=>l.id===id)||{qty:0}).qty;
+function newDraft(){return{q:clone(S.quote),edits:{},f:{place:'',reg:'',vat:'',postal:'',acc:''},colour:'open',ver:1};}
+function missingCount(){ if(!S.draft) return 0; return FIELDS.filter(f=>!S.draft.f[f.k].trim()).length+(S.ans.opc==='later'?1:0); }
+function respRows(){
+  return [['Froth Sensors','S3','Client','Client','S3','S3'],['Field control panel','S3','Client','Shared (1)','S3','S3'],['Sensor mounting brackets','Client','Client','N/A','N/A','N/A'],
+   ['Power supply to panel','Client','Client','Client','N/A','Client'],['Network and fibre','Client','Client','Client','Shared (2)','Client'],
+   ['Sensor server',S.draft.q.server==='s3'?'S3':'Client','Client','Client','Shared (3)','S3'],
+   ['OPC integration to site systems','N/A','N/A','Client','Shared (4)',S.ans.opc==='S3'?'S3':S.ans.opc==='Client'?'Client':'TBC']];
+}
+function genExclusions(){
+  const lines=[]; respRows().forEach(r=>{const st=['supply','install','connect','configure','commission'].filter((s,i)=>r[i+1]==='Client'); if(st.length) lines.push(`${r[0]}: Client (${st.join(', ')}).`);});
+  lines.splice(1,0,'Pulp Sensors: Client (install, connect).'); // carried over from the FIC0001 text: left in deliberately for the checks to find
+  if(S.draft.q.ship==='EXW') lines.push('Shipping and insurance to site: Client.');
+  return `<p>Items and stages below are outside Stone Three’s scope, as set out in section 4.</p><ul>${lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`;
+}
+function genPST(){
+  const q=S.draft.q, p=[];
+  if(q.ship==='EXW') p.push('Delivery is Ex Works by agreement; transport and insurance to site are the client’s responsibility.');
+  if(q.server==='client') p.push('The client provides the server or virtual machine to Stone Three’s specification, with remote access for Stone Three.');
+  if(q.disc>0) p.push(`A once-off discount of ${q.disc}% applies to this quotation only.`);
+  return p.length?`<ul>${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p>No project-specific terms. The standard conditions below apply.</p>';
+}
+const GEN={
+  s1:()=>`<p>This proposal sets out Stone Three’s offer to Example Mining Co (FICTIONAL) for the supply and commissioning of six Froth Sensors on Rougher Bank C at Demo Concentrator, South Africa.</p><p>It extends the Froth Sensor installation proposed for Rougher Banks A and B (FIC0001). Measurements are intended for operator decision support and later process control.</p>`,
+  s3b:()=>`<h5>Solution objectives</h5><ul>${WB.goals.map(g=>`<li>${esc(g)}</li>`).join('')}</ul><h5>Measurements provided</h5><ul>${WB.direct.map(m=>`<li>${esc(m.replace('?',''))}</li>`).join('')}${WB.derived.map(m=>`<li>${esc(m)} (derived)</li>`).join('')}</ul>
+   <h5>Commissioning success criteria</h5><p>Measurable success criteria and test methods will be agreed with the client at project kickoff. Candidate criteria for discussion:</p><ul>${WB.kom.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`,
+  s7:genExclusions, s8:genPST
+};
+function removeLi(sec,re){ const d=S.draft; const html=d.edits[sec]??GEN[sec](); const box=document.createElement('div'); box.innerHTML=html; box.querySelectorAll('li').forEach(li=>{if(re.test(li.textContent)) li.remove();}); d.edits[sec]=box.innerHTML; S.dirty=true; }
+function secText(sec){ const box=document.createElement('div'); box.innerHTML=S.draft.edits[sec]??GEN[sec](); return box.textContent; }
+
+function docHTML(mode){
+  const d=S.draft, q=d.q, edit=mode==='edit'&&!S.published;
+  const sec=(id,kind,label,inner)=>`<section class="dsec k-${kind}" id="${mode}-${id}"><span class="dbadge">${kind==='fixed'?'🔒 ':''}${label}</span>${inner}</section>`;
+  const ed=id=>edit?`<div class="ed" contenteditable="true" data-sec="${id}">${d.edits[id]??GEN[id]()}</div>`:(d.edits[id]??GEN[id]());
+  const fld=k=>{const F=FIELDS.find(x=>x.k===k),v=d.f[k];
+    return edit?`<input class="mi ${v.trim()?'filled':''}" data-f="${k}" value="${esc(v)}" placeholder="Missing: ${esc(F.label)}" aria-label="${esc(F.label)}">`:(v.trim()?esc(v):`<span class="ph">[Missing: ${esc(F.label)}]</span>`);};
+  const edited=id=>d.edits[id]!==undefined?' · edited by you':'';
+  const sensors=qty(q,'H1'), panels=qty(q,'H3'), spare=qty(q,'H2');
+  const scope=[['Froth Sensor',`Rougher Bank C, cells 1–${sensors} (RC-01 to RC-0${sensors})`,sensors]];
+  if(spare) scope.push(['Froth Sensor critical spare','Held on site',spare]);
+  if(panels) scope.push(['Field control panel','Grouped power and network connection for the sensors',panels]);
+  if(qty(q,'H4')) scope.push(['Sensor server','Stone Three-supplied',qty(q,'H4')]);
+  let price=''; GROUPS.forEach(g=>{const L=q.lines.filter(l=>l.grp===g); if(!L.length) return;
+    price+=`<tr class="g"><td></td><td colspan="5">${g}</td></tr>`+L.map(l=>`<tr><td>${l.id}</td><td>${esc(l.desc)} (FICTIONAL RATE)</td><td class="num">${l.qty}</td><td>${esc(l.unit)}</td><td class="num">${zar(l.rate)}</td><td class="num">${zar(l.amt)}</td></tr>`).join('')});
+  if(q.discAmt) price+=`<tr><td>D1</td><td>Discount ${q.disc}% on once-off total</td><td></td><td></td><td></td><td class="num">${zar(q.discAmt)}</td></tr>`;
+  price+=`<tr class="tt"><td></td><td colspan="4">Once-off total (hardware and Project Services)</td><td class="num">${zar(q.once)}</td></tr><tr class="tt"><td></td><td colspan="4">Annual subscription total (per year)</td><td class="num">${zar(q.lic)}</td></tr>`;
+  const R=respRows();
+  const opcCell=v=>v==='TBC'?`<span class="ph">[TBC: commission owner]</span>`:v;
+  const status=S.published?'Issued for client':'Draft for internal review';
+  return `<div class="paper">
+   <div class="dhdr"><span>${DOC_NO} | Rev01 | ${DOC_DATE}</span><span class="mk ${S.published?'issued':''}">${S.published?'ISSUED · FICTIONAL DEMONSTRATION':'DRAFT · FICTIONAL DEMONSTRATION'}</span></div>
+   ${sec('cover','data','Project record + quote',`<h1 class="dt">Proposal for Froth Sensors, Rougher Bank C</h1><p>Example Mining Co (FICTIONAL), Demo Concentrator</p>
+     <table class="dtb"><tr><th>Document No.</th><td>${DOC_NO}</td><th>Revision</th><td>Rev01</td></tr><tr><th>Date</th><td>${DOC_DATE}</td><th>Quote</th><td>${QUOTE_NO} Rev ${q.rev}</td></tr><tr><th>Status</th><td colspan="3">${status}</td></tr></table>`)}
+   ${sec('s1','gen','Claude draft · editable'+edited('s1'),`<h4>1 Purpose and background</h4>${ed('s1')}`)}
+   ${sec('s2','data','From quote · locked',`<h4>2 Scope of supply</h4><table class="dtb"><tr><th>Item</th><th>Location</th><th class="num">Qty</th></tr>${scope.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="num">${r[2]}</td></tr>`).join('')}</table><p>These quantities match the quote lines in section 5.</p>`)}
+   ${sec('s3','fixed','Fixed clause · Froth Sensor',`<h4>3 Proposed solution</h4><h5>3.1 Froth Sensor</h5><p>Measurement of individual flotation cell performance is not possible using traditional instrumentation. The Froth Sensor is an industrialised machine-vision system that measures key flotation parameters at each cell where it is installed.</p><ul><li>Froth velocity over the lip</li><li>Froth height above the cell lip</li><li>Froth bubble size</li><li>Froth stability</li><li>Froth colour</li></ul>`)}
+   ${S.ans.sol==='yes'?sec('s3b','gen','Claude draft from Peter’s workbook v1.0'+edited('s3b'),`<h5>3.2 Solution objectives and commissioning criteria</h5>${ed('s3b')}${d.colour==='open'?`<div class="anno red">Flag (not printed): froth colour is marked “?” in workbook v1.0, meaning confirm before quoting.</div>`:''}<div class="anno">Annotation (not printed): workbook wording, not yet approved standard content. Criteria are candidates; thresholds are agreed with the client at kickoff.</div>`):''}
+   ${sec('s4','data','Responsibility matrix · locked',`<h4>4 Responsibilities</h4><table class="dtb"><tr><th>Item</th><th>Supply</th><th>Install</th><th>Connect</th><th>Configure</th><th>Commission</th></tr>${R.map(r=>`<tr><td>${r[0]}</td>${r.slice(1).map(opcCell).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</table>
+     <p style="font-size:.74rem">(1) Stone Three wires inside the panel; Client provides and terminates field power and network cabling. (2) Client allocates IP addresses and firewall rules; Stone Three sets sensor addresses. (3) ${q.server==='s3'?'Client provides rack space, power and network; Stone Three installs the operating system and sensor software.':'Client installs operating system and security software; Stone Three installs sensor software.'} (4) Stone Three configures OPC output tags; Client maps them into historian and SCADA.</p>`)}
+   ${sec('s5','data','Copied from quote · locked',`<h4>5 Pricing</h4><p>All prices are in ZAR and exclude all taxes. Prices are copied unchanged from ${QUOTE_NO} Rev ${q.rev}.</p><table class="dtb"><tr><th>No.</th><th>Description</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Amount</th></tr>${price}</table>`)}
+   ${sec('s6','fixed','Fixed wording + quote values',`<h4>6 Commercial terms</h4><p><span class="fx">All prices exclude all taxes.</span><br><span class="fx">Payment: 30 days from invoice.</span><br>${q.ship==='DAP'?`<span class="fx">Delivery: DAP (Delivered at Place) to</span> ${fld('place')}.`:'<span class="fx">Delivery: see project specific terms and conditions.</span>'}</p>
+     <p><span class="cv">Validity: 30 days, to ${VALID_TO}.</span><br><span class="cv">Hardware invoicing: ${q.ship==='DAP'?'50% on order, 50% on delivery to site':'50% on order, 50% when goods are ready for collection (Ex Works)'}.</span><br><span class="cv">Project Services invoicing: on completion of each activity.</span><br><span class="cv">Licence: the annual licence, including remote support, starts when sensor data is available on the OPC server and is invoiced annually in advance from that date.</span></p>
+     ${q.ship==='DAP'?'<div class="anno">Annotation (not printed): the hardware invoicing milestone under DAP is a fictional value; the standard milestone is still to be agreed.</div>':''}`)}
+   ${sec('s7','gen','Claude draft from matrix · editable'+edited('s7'),`<h4>7 Assumptions and exclusions</h4>${ed('s7')}`)}
+   ${sec('s8','gen','Claude draft from quote exceptions + fixed conditions'+edited('s8'),`<h4>8 Project specific terms and conditions</h4>${ed('s8')}
+     <p class="lockline"><span class="fx">🔒 Standard conditions:</span> Stone Three performs site work only after written approval of the visit and confirmation that the site readiness requirements issued by Stone Three have been met. Where those requirements are not met and contracted tasks cannot be performed on site, Stone Three may charge standing time at its standard rates. Changes to scope are requested in writing; Stone Three responds with a quotation, and work proceeds only on a new or amended purchase order.</p>`)}
+   ${sec('sa','fixed','Fixed clause · support tables',`<h4>Appendix A Ongoing sensor support</h4><p>Client and Stone Three support task tables (13 rows), inserted verbatim from the clause library. Collapsed in this demonstration.</p>`)}
+   ${sec('sb','data','Company record + client details',`<h4>Appendix B Proposal details and acceptance</h4><table class="dtb"><tr><th></th><th>Stone Three</th><th>Example Mining Co (FICTIONAL)</th></tr>
+     <tr><th>Legal name</th><td>Stone Three Digital (Pty) Ltd</td><td>Example Mining Co (FICTIONAL)</td></tr>
+     <tr><th>Postal address</th><td>P.O. Box 131, Somerset Mall, 7137, South Africa</td><td>${fld('postal')}</td></tr>
+     <tr><th>Company reg. no.</th><td>2014/102965/07</td><td>${fld('reg')}</td></tr><tr><th>VAT reg. no.</th><td>4240270340</td><td>${fld('vat')}</td></tr>
+     <tr><th>Primary contact</th><td>Proposal author (demo user)</td><td>A. Example, Plant Metallurgist</td></tr>
+     <tr><th>Accounts contact</th><td>From Finance record (demo placeholder)</td><td>${fld('acc')}</td></tr></table>
+     <div class="anno">Annotation (not printed): Stone Three accounts contact and bank details still await Finance confirmation (open item D1 in the reference prototype).</div>`)}
+   ${sec('sc','fixed','Fixed clause · T&amp;C master',`<h4>Appendix C Terms and conditions</h4><p>The approved terms and conditions master, reproduced word for word. This demonstration holds a placeholder, not Stone Three terms.</p>`)}
+  </div>`;
+}
+function jumpTo(mode,id,scroller){ const el=document.getElementById(mode+'-'+id); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),2200); }
+function generate(){
+  const P=$('#p2'); const steps=['Reading requirements from the conversation','Copying '+QUOTE_NO+' Rev '+S.quote.rev+' unchanged into scope and pricing','Inserting fixed clauses from the clause library (demo)','Building responsibilities from the FIC0001 matrix and your answers',S.ans.sol==='yes'?'Drafting objectives and criteria from Peter’s workbook v1.0':'Skipping workbook content (not requested)','Drafting purpose, exclusions and project-specific terms','Flagging missing information'];
+  P.querySelector('#genLog').innerHTML=''; P.querySelector('#genBtn').disabled=true; let i=0;
+  (function tick(){ if(i<steps.length){ P.querySelector('#genLog').insertAdjacentHTML('beforeend',`<li>${esc(steps[i++])}</li>`); setTimeout(tick,260); return; }
+    S.draft=newDraft(); S.dirty=true; log('Drafting',`Draft generated from ${QUOTE_NO} Rev ${S.quote.rev}`); renderAll(); })();
+}
+function refreshDraft(){
+  const old=S.draft.q.rev; const exOld=JSON.stringify(S.draft.q.ex.map(e=>e.k)); S.draft.q=clone(S.quote);
+  const changedEx=exOld!==JSON.stringify(S.quote.ex.map(e=>e.k)); if(changedEx) delete S.draft.edits.s8;
+  log('Drafting',`Draft refreshed from Rev ${old} to Rev ${S.quote.rev}`+(changedEx?'; section 8 regenerated for the new exceptions':''));
+  S.dirty=true; toast(`Scope, pricing and terms now follow Rev ${S.quote.rev}. Your edits to Claude’s sections were kept`+(changedEx?' (section 8 regenerated)':'')+'.'); renderAll();
+}
+function renderDraft(){
+  const P=$('#p2');
+  if(!S.quote){P.innerHTML='<div class="callout">Price the proposal in step 2 first.</div>';return;}
+  if(!S.draft){
+    P.innerHTML=`<div class="card genbox"><h3>Generate the draft</h3><p style="margin:0 0 .6rem;line-height:1.5">Claude assembles the proposal from what this session already holds. Nothing is re-typed and no price is calculated.</p>
+     <table class="t"><tbody><tr><td>Requirements</td><td>From the conversation (${S.log.filter(l=>l.cat==='Requirement').length} recorded)</td></tr><tr><td>Scope and pricing</td><td>${QUOTE_NO} Rev ${S.quote.rev}, copied unchanged</td></tr>
+     <tr><td>Fixed clauses</td><td>Clause library (demo stand-in: real wording and approval status are not represented)</td></tr><tr><td>Workbook</td><td>${S.ans.sol==='yes'?'Peter’s workbook v1.0, Froth Sensor entry':'Not requested'}</td></tr></tbody></table>
+     <div class="row" style="margin-top:1rem"><button class="btn primary" id="genBtn" type="button">Generate editable draft</button><span class="tag sim">Simulated drafting</span></div><ol class="genlog" id="genLog"></ol></div>`;
+    $('#genBtn').onclick=generate; return;
+  }
+  const keep=P.scrollTop, m=missingCount(), stale=S.draft.q.rev!==S.quote.rev;
+  P.innerHTML=`<div class="doctools"><div class="row">
+     <button class="misspill ${m?'':'zero'}" id="nextMiss" type="button">${m?`${m} missing item${m>1?'s':''} · next →`:'No missing fields'}</button>
+     <span class="spacer"></span><span class="savestate">${S.published?'Published · locked':S.dirty?'Unsaved changes':(S.savedAt?'Saved '+esc(S.savedAt):'')}</span>
+     ${S.published?'':`<button class="btn" type="button" id="saveDraft">Save and finish later</button><button class="btn primary" type="button" id="submitQA">Submit for checking →</button>`}</div>
+    <div class="legend"><span><i style="background:#9ea2ab"></i>Fixed clause, locked</span><span><i style="background:var(--cyan)"></i>From quote or record, change at source</span><span><i style="background:#d98e32"></i>Claude draft, click to edit</span><span><i style="background:var(--red)"></i>Missing information</span></div>
+    <div class="jump">${[['cover','Cover'],['s1','1 Purpose'],['s2','2 Scope'],['s3','3 Solution'],['s4','4 Responsibilities'],['s5','5 Pricing'],['s6','6 Commercial'],['s7','7 Exclusions'],['s8','8 Project terms'],['sb','App. B']].map(c=>`<button type="button" data-j="${c[0]}">${c[1]}</button>`).join('')}</div></div>
+   ${stale?`<div class="callout warn banner row"><span><b>Quote Rev ${S.quote.rev} is newer than this draft (Rev ${S.draft.q.rev}).</b> Scope, pricing and terms still show Rev ${S.draft.q.rev}.</span><span class="spacer"></span><button class="btn sm dark" type="button" id="refresh">Refresh from Rev ${S.quote.rev}</button></div>`:''}
+   ${S.published?'<div class="callout ok banner">Published. This revision is frozen; changes would start Rev02.</div>':''}
+   ${docHTML('edit')}`;
+  P.scrollTop=keep;
+  P.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>jumpTo('edit',b.dataset.j));
+  P.querySelectorAll('.ed').forEach(e=>e.addEventListener('input',()=>{S.draft.edits[e.dataset.sec]=e.innerHTML; if(!S.dirty){S.dirty=true; renderShell(); P.querySelector('.savestate').textContent='Unsaved changes';}}));
+  P.querySelectorAll('.mi').forEach(i=>i.addEventListener('input',()=>{S.draft.f[i.dataset.f]=i.value; i.classList.toggle('filled',!!i.value.trim()); S.dirty=true; renderShell(); const mm=missingCount(); const b=$('#nextMiss'); b.classList.toggle('zero',!mm); b.textContent=mm?`${mm} missing item${mm>1?'s':''} · next →`:'No missing fields';}));
+  $('#nextMiss').onclick=()=>{ const el=[...P.querySelectorAll('.mi')].find(i=>!i.value.trim()) || (S.ans.opc==='later'?P.querySelector('#edit-s4'):null); if(el){el.scrollIntoView({block:'center',behavior:'smooth'}); if(el.focus) setTimeout(()=>el.focus({preventScroll:true}),300);} };
+  if($('#refresh')) $('#refresh').onclick=refreshDraft;
+  if($('#saveDraft')) $('#saveDraft').onclick=()=>persist('Draft saved as v0.'+((S.draft.ver||1)+1)+'. Close the page and resume from the same point later.');
+  if($('#submitQA')) $('#submitQA').onclick=()=>{ if(!S.qa){S.qa={runs:0,seen:[],dismissed:{}};} S.qa.runs++; S.qa.at=now(); log('QA',`Submitted for checking (run ${S.qa.runs})`); unlock(3); go(3); };
+}
+
+/* =====================================================================
+   STEP 4 · QUALITY ASSURANCE (simulated rule set modelled on the prototype checker's rule types)
+   ===================================================================== */
+function findings(){
+  const d=S.draft, q=d.q, F=[], add=(id,sev,title,detail,where,fix,rule)=>F.push({id,sev,title,detail,where,fix,rule});
+  if(q.rev!==S.quote.rev) add('REV','blocker',`Draft is built on quote Rev ${q.rev}; S3Central holds Rev ${S.quote.rev}`,'Scope, pricing and commercial terms must match the latest saved quotation.','s5',{t:'refresh'},'quote match');
+  FIELDS.forEach(f=>{ if(!d.f[f.k].trim()) add('MISS-'+f.k,'blocker',`Missing: ${f.label}`,f.k==='place'?'DAP delivery needs a named place.':'Required in Appendix B before the client can sign.',f.sec,{t:'field',k:f.k},'V-TBC'); });
+  if(S.ans.opc==='later') add('RESP','blocker','OPC integration commissioning has no owner','Every responsibility stage needs one owner, or a written split, before issue.','s4',{t:'opc'},'V-RESP / C7');
+  const sensors=qty(q,'H1'), lic=qty(q,'L1'), panels=qty(q,'H3');
+  if(sensors!==lic) add('QTY','blocker',`Licence covers ${lic} sensors; ${sensors} sensors are quoted`,'Scope and annual subscription quantities disagree. Correct it in the calculator.','s5',{t:'calc'},'quantity check');
+  if(S.ans.opc==='S3'&&!qty(q,'S5')) add('OPCP','blocker','Stone Three commissions OPC integration, but no OPC commissioning line is quoted','Section 4 commits Stone Three to work that the quote does not price.','s4',{t:'calc'},'matrix vs quote');
+  if(/pulp/i.test(secText('s7'))) add('EXCL','warning','Exclusions mention Pulp Sensors, which are not in this scope','Text carried over from FIC0001. Foreign content of this kind was a defect type in the historical proposal review.','s7',{t:'remove',sec:'s7',re:'pulp'},'scope vs exclusions');
+  if(S.ans.sol==='yes'&&d.colour==='open') add('COLOUR','warning','Froth colour: fixed text offers it, workbook marks it “?”','Section 3.1 (fixed, locked) lists froth colour. Workbook v1.0 marks it as to be confirmed before quoting. Confirm it is offered, or dismiss with a reason and raise it with the content owner.','s3',{t:'colour'},'workbook flag');
+  if(sensors>panels*8) add('PANEL','warning',`${sensors} sensors on ${panels} panel${panels!==1?'s':''} exceeds 8 ports per panel`,'Panel sizing rule is observed practice from one project drawing, not an approved standard.','s2',{t:'calc'},'panel rule');
+  q.ex.forEach(e=>add('EXC-'+e.k,'info',`Approval needed at publication: ${e.label}`,'Motivation is recorded internally and goes to the approver.','s5',null,'exception'));
+  const ed=Object.keys(d.edits).filter(k=>['s1','s3b','s7','s8'].includes(k));
+  if(ed.length) add('EDIT','info','You edited Claude’s sections: '+ed.map(k=>({s1:'1',s3b:'3.2',s7:'7',s8:'8'}[k])).join(', '),'Edited text is shown to the reviewer; it is not checked for new commitments.','s1',null,'C13-type');
+  add('D1','info','Stone Three accounts contact and bank details await Finance confirmation','Outside this proposal (open item D1). The demo record holds a placeholder.','sb',null,'V-CONTENT');
+  return F;
+}
+function passed(){
+  const d=S.draft,q=d.q,p=[];
+  if(q.rev===S.quote.rev) p.push(`Quote lines copied unchanged from ${QUOTE_NO} Rev ${q.rev} (${q.lines.length} lines)`);
+  p.push('Totals add up: hardware + Project Services'+(q.discAmt?' − discount':'')+' = once-off total');
+  if(qty(q,'H1')===qty(q,'L1')) p.push('Scope quantities agree with quote and licence lines');
+  p.push('Fixed clauses unchanged from the library version (fingerprint match, simulated)');
+  p.push('Headings follow the kickoff naming: “Commercial terms”, “Project specific terms and conditions”');
+  p.push('Payment term stated separately from invoicing milestones; tax statement present');
+  p.push(`Document number ${DOC_NO} Rev01 follows the Document Matrix format`);
+  return p;
+}
+function qaCounts(){ const F=findings(), dis=S.qa?S.qa.dismissed:{}; const open=F.filter(f=>f.sev!=='info'&&!dis[f.id]);
+  return {F,b:open.filter(f=>f.sev==='blocker').length,w:open.filter(f=>f.sev==='warning').length,dis:Object.keys(dis).filter(id=>F.some(f=>f.id===id)).length}; }
+function gateOK(){ if(!S.qa||!S.draft) return false; const c=qaCounts(); return c.b===0&&c.w===0; }
+function renderQA(){
+  const P=$('#p3');
+  if(!S.qa||!S.draft){P.innerHTML='<div class="callout">Submit the draft for checking from step 3.</div>';return;}
+  const c=qaCounts(), F=c.F, dis=S.qa.dismissed;
+  F.forEach(f=>{ if(!S.qa.seen.includes(f.id)) S.qa.seen.push(f.id); });
+  const resolved=S.qa.seen.filter(id=>!F.some(f=>f.id===id));
+  if(gateOK()) unlock(4);
+  const fixUI=f=>{ if(!f.fix) return ''; const x=f.fix;
+    if(x.t==='field'){const F2=FIELDS.find(z=>z.k===x.k); return `<input type="text" data-fix="${x.k}" placeholder="Enter ${esc(F2.label)}" aria-label="${esc(F2.label)}"><button class="btn sm primary" type="button" data-fset="${x.k}">Fix</button><button class="btn sm" type="button" data-fex="${x.k}">Use example</button>`;}
+    if(x.t==='refresh') return `<button class="btn sm primary" type="button" data-act="refresh">Refresh draft from Rev ${S.quote.rev}</button>`;
+    if(x.t==='opc') return `<button class="btn sm primary" type="button" data-act="opcS3">Stone Three</button><button class="btn sm primary" type="button" data-act="opcClient">Client</button>`;
+    if(x.t==='calc') return `<button class="btn sm primary" type="button" data-act="calc">Correct in calculator</button>`;
+    if(x.t==='remove') return `<button class="btn sm primary" type="button" data-act="rmPulp">Remove the line</button>`;
+    if(x.t==='colour') return `<button class="btn sm primary" type="button" data-act="colour">Confirm colour is offered</button>`;
+    return ''; };
+  const card=f=>{ const d=dis[f.id];
+    return `<div class="find ${f.sev} ${d?'done':''}"><span class="tag ${d?'ok':f.sev}">${d?'Dismissed':f.sev}</span><span class="rid">${esc(f.rule)}</span>
+      <div class="ft">${esc(f.title)}</div><div class="fd">${esc(f.detail)}</div>
+      ${d?`<div class="fd" style="margin-top:.3rem"><b>Reason recorded:</b> “${esc(d)}”</div><div class="fa"><button class="btn sm" type="button" data-reopen="${f.id}">Reopen</button></div>`:
+      `<div class="fa">${fixUI(f)}${f.sev==='warning'?`<button class="btn sm" type="button" data-dismiss="${f.id}">Dismiss with reason</button>`:''}<button class="btn sm" type="button" data-show="${f.where}">Show in proposal</button></div>`}</div>`; };
+  const open=F.filter(f=>f.sev!=='info'&&!dis[f.id]), done=F.filter(f=>dis[f.id]), info=F.filter(f=>f.sev==='info');
+  const passList=passed();
+  P.innerHTML=`<div class="qasum"><div class="kpi b"><div class="l">Blockers open</div><div class="v">${c.b}</div></div><div class="kpi w"><div class="l">Warnings open</div><div class="v">${c.w}</div></div><div class="kpi"><div class="l">Dismissed · resolved</div><div class="v">${c.dis} · ${resolved.length}</div></div><div class="kpi p"><div class="l">Checks passed</div><div class="v">${passList.length}</div></div></div>
+   <div class="qagrid"><div>
+    ${c.b+c.w?`<div class="callout amber" style="margin-bottom:.8rem"><b>Blockers</b> stop publication and cannot be dismissed. <b>Warnings</b> need a fix or a recorded reason. Information items need no action.</div>`:`<div class="callout ok" style="margin-bottom:.8rem"><b>Ready for approval.</b> No blockers or open warnings. <button class="btn sm primary" type="button" id="toPub" style="margin-left:.4rem">Continue to publication →</button></div>`}
+    ${open.map(card).join('')}${done.map(card).join('')}
+    ${info.length?`<div class="h3" style="margin-top:1rem">Information</div>${info.map(f=>`<div class="find info"><span class="tag info">Info</span><span class="rid">${esc(f.rule)}</span><div class="ft">${esc(f.title)}</div><div class="fd">${esc(f.detail)}</div></div>`).join('')}`:''}
+    ${resolved.length?`<p class="small">Resolved since submission: ${resolved.length} finding${resolved.length>1?'s':''}.</p>`:''}
+    <details class="ev" open><summary>Checks passed (${passList.length})</summary><ul class="passlist">${passList.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></details>
+    <details class="ev"><summary>What the checker evidence does and does not show</summary>
+     <div class="evrow"><b>This page</b><span>A simulated rule set modelled on the prototype checker’s rule types (V-TBC, V-RESP, C7, quantity and content checks). It is not the checker itself.</span></div>
+     <div class="evrow"><b>Designed tests</b><span><b>32 of 32 passed</b> on 12 Oct 2026. Known defects were planted in the prototype’s own fictional draft. Shows detection of planted defects only.</span></div>
+     <div class="evrow"><b>Historical review</b><span><b>10 of 12</b> issued proposals had at least one confirmed internal defect, found by manual review (Evidence register), not by the checker.</span></div>
+     <div class="evrow"><b>Real-world validation</b><span><b>Not yet run.</b> Proposed retrospective test on three issued proposals (T1 IMP0023, T2 KHO0003, T3 a defect-free proposal), measuring missed defects, false alarms and review time.</span></div>
+    </details>
+   </div>
+   <div class="qadoc" id="qadoc">${docHTML('view')}</div></div>`;
+  const rer=()=>{S.dirty=true; renderAll();};
+  P.querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>jumpTo('view',b.dataset.show));
+  P.querySelectorAll('[data-fset]').forEach(b=>b.onclick=()=>{const k=b.dataset.fset, v=P.querySelector(`[data-fix="${k}"]`).value.trim(); if(!v) return toast('Enter a value first.'); S.draft.f[k]=v; rer();});
+  P.querySelectorAll('[data-fix]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter') P.querySelector(`[data-fset="${i.dataset.fix}"]`).click();});
+  P.querySelectorAll('[data-fex]').forEach(b=>b.onclick=()=>{const k=b.dataset.fex; S.draft.f[k]=FIELDS.find(f=>f.k===k).ex; rer();});
+  P.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{const a=b.dataset.act;
+    if(a==='refresh') return refreshDraft();
+    if(a==='calc') return openCalc(3);
+    if(a==='opcS3'||a==='opcClient'){S.ans.opc=a==='opcS3'?'S3':'Client'; log('Requirement','OPC integration commissioning decided: '+S.ans.opc.replace('S3','Stone Three')); return rer();}
+    if(a==='rmPulp'){removeLi('s7',/pulp/i); log('QA','Removed carried-over Pulp Sensors line from exclusions'); return rer();}
+    if(a==='colour'){S.draft.colour='confirmed'; log('QA','Froth colour confirmed as offered (BD), workbook “?” flag closed'); return rer();}
+  });
+  P.querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=()=>dismiss(F.find(f=>f.id===b.dataset.dismiss)));
+  P.querySelectorAll('[data-reopen]').forEach(b=>b.onclick=()=>{const f=F.find(x=>x.id===b.dataset.reopen); delete S.qa.dismissed[f.id]; log('QA','Warning reopened: '+f.title); rer();});
+  if($('#toPub')) $('#toPub').onclick=()=>go(4);
+}
+function dismiss(f){
+  modal(`<h3>Dismiss warning</h3><p><b>${esc(f.title)}</b><br>Your reason is recorded in the decision record and shown to the approver.</p>
+   <textarea class="why" id="dReason" placeholder="Reason (required)" style="min-height:4.5rem"></textarea>
+   <div class="row" style="margin-top:.8rem;justify-content:flex-end"><button class="btn" type="button" data-close>Cancel</button><button class="btn primary" type="button" id="dOk" disabled>Dismiss and record</button></div>`);
+  $('#dReason').oninput=()=>$('#dOk').disabled=!$('#dReason').value.trim(); $('#dReason').focus();
+  $('#dOk').onclick=()=>{const r=$('#dReason').value.trim(); S.qa.dismissed[f.id]=r; log('QA',`Warning dismissed: ${f.title}. Reason: “${r}”`,true); closeModal(); S.dirty=true; renderAll();};
+}
+
+/* =====================================================================
+   STEP 5 · PUBLICATION
+   ===================================================================== */
+function approvals(){
+  const q=S.quote, A=[{id:'signoff@'+q.rev,label:'Proposal sign-off',who:'Named reviewer (BD)',why:'Named human approval is recorded before any proposal is issued.'}];
+  q.ex.forEach(e=>A.push({id:e.k+'@'+q.rev,label:'Exception: '+e.label,who:'Commercial approver · not yet defined by policy',why:'Motivation: “'+e.why+'”',internal:true}));
+  return A;
+}
+function renderPublish(){
+  const P=$('#p4');
+  if(!S.qa||!gateOK()){P.innerHTML='<div class="callout">Resolve the blockers and warnings in step 4 first.</div>';return;}
+  const A=approvals(), allOK=A.every(a=>S.appr[a.id]?.st==='ok');
+  const pub=S.published;
+  P.innerHTML=`<div class="grid2"><div class="stack">
+    <div class="card"><h3>Approvals this proposal needs</h3>
+     ${A.map(a=>{const s=S.appr[a.id]; return `<div class="appr"><div><b>${esc(a.label)}</b> ${a.internal?'<span class="tag int">Internal</span>':''}<div class="who">${esc(a.who)}</div><div class="small">${esc(a.why)}</div></div>
+       <div>${s?.st==='ok'?`<span class="tag ok">Approved ${esc(s.at)}</span>`:s?.st==='wait'?'<span class="tag info">Requested…</span>':`<button class="btn sm primary" type="button" data-req="${a.id}">Request approval</button>`}</div></div>`;}).join('')}
+     <p class="small" style="margin:0">A standard quote needs only the sign-off; exceptions add one approval each. No approval threshold or authority is assumed: the commercial approver is a placeholder until policy names one. Approval responses here are simulated.</p></div>
+    <div class="card"><h3>Finalise and publish</h3>
+     <div class="sp"><div class="sp-h">SharePoint <span class="tag sim" style="background:#fff">Simulated</span></div><div class="sp-b">
+      <div><b>Client documents</b></div><div class="sp-path">Sales › Example Mining Co › FIC0002 › 1400 Proposal Docs</div>
+      ${fileCard({name:DOC_NO+'_Rev01.docx',kind:'doc',meta:'Editable source, frozen at issue'})}${fileCard({name:DOC_NO+'_Rev01.pdf',kind:'pdf',meta:'Issued to client'})}
+      <div style="margin-top:.7rem"><b>Internal record</b> <span class="tag int">Restricted</span></div><div class="sp-path">Sales › Example Mining Co › FIC0002 › Commercial records</div>
+      ${fileCard({name:DOC_NO+'_Rev01_decision-record.pdf',kind:'pdf',meta:'Decisions, motivations, dismissed warnings, approvals'})}
+     </div></div>
+     ${pub?`<div class="done-card" style="margin-top:.9rem"><b>Published (simulated) at ${esc(pub.at)}.</b> No file was written. In the target design, Rev01 is frozen with ${QUOTE_NO} Rev ${S.quote.rev} and the clause library version, and the decision record is stored with restricted access.</div>
+       <div class="row" style="margin-top:.8rem"><button class="btn" type="button" id="viewIssued">View issued proposal</button><button class="btn" type="button" id="newProp">Start a new proposal</button></div>`:
+      `<ol class="genlog" id="pubLog"></ol><div class="row" style="margin-top:.8rem"><button class="btn primary" type="button" id="pubBtn" ${allOK?'':'disabled'}>Finalise and publish to SharePoint</button><span class="small">${allOK?'':'Waiting for approvals'}</span></div>`}
+    </div></div>
+   <div class="card"><h3>Decision record</h3><p class="small" style="margin:0 0 .6rem">Collected automatically through the session. Internal entries are never printed in the client document.</p>
+    <div class="tscroll"><table class="t log"><thead><tr><th>Time</th><th>Step</th><th>Decision</th></tr></thead><tbody>${S.log.map(l=>`<tr><td>${esc(l.t)}</td><td>${esc(l.cat)}</td><td>${esc(l.text)} ${l.internal?'<span class="tag int">Internal</span>':''}</td></tr>`).join('')}</tbody></table></div></div></div>`;
+  P.querySelectorAll('[data-req]').forEach(b=>b.onclick=()=>{const id=b.dataset.req; S.appr[id]={st:'wait'}; renderAll();
+    setTimeout(()=>{S.appr[id]={st:'ok',at:now()}; const a=approvals().find(x=>x.id===id); log('Approval',(a?a.label:id)+': approved (simulated response from '+(a?a.who:'approver')+')'); S.dirty=true; renderAll();},1100);});
+  if($('#pubBtn')) $('#pubBtn').onclick=()=>{ $('#pubBtn').disabled=true; const steps=[`Freezing ${DOC_NO} Rev01 with ${QUOTE_NO} Rev ${S.quote.rev}`,'Rendering Word and PDF','Writing client documents to SharePoint (simulated)','Writing restricted decision record (simulated)'];
+    let i=0; (function tick(){ if(i<steps.length){$('#pubLog').insertAdjacentHTML('beforeend',`<li>${esc(steps[i++])}</li>`); setTimeout(tick,420); return;}
+      S.published={at:now()}; log('Publication',`${DOC_NO} Rev01 published to SharePoint (simulated)`); persist('Published (simulated). Session saved.'); })(); };
+  if($('#viewIssued')) $('#viewIssued').onclick=()=>go(2);
+  if($('#newProp')) $('#newProp').onclick=resetDemo;
+}
+
+/* ---------------- modal, reset, resume ---------------- */
+function modal(html){ $('#modal').innerHTML=html; $('#modalOv').hidden=false; $$('#modal [data-close]').forEach(b=>b.onclick=closeModal); }
+function closeModal(){ $('#modalOv').hidden=true; }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!$('#modalOv').hidden) closeModal(); else if(!$('#calcOv').hidden) closeCalc(); }});
+function resetDemo(){ modal(`<h3>Start again?</h3><p>This clears the proposal session and any saved copy in this browser.</p><div class="row" style="justify-content:flex-end"><button class="btn" type="button" data-close>Cancel</button><button class="btn primary" type="button" id="rOk">Start again</button></div>`);
+  $('#rOk').onclick=()=>{ try{localStorage.removeItem(KEY);}catch(e){} S=fresh(); chatInit(); closeModal(); renderAll(); }; }
+$('#resetAll').onclick=resetDemo;
+
+(function boot(){
+  let saved=null; try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
+  chatInit(); renderAll();
+  if(saved&&saved.chat){
+    modal(`<h3>Resume your proposal?</h3><p>A saved session exists from <b>${esc(saved.savedAt||'earlier')}</b>, at step ${saved.step+1} (${esc(STEPS[saved.step].t)}).</p><div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="rNew">Start new</button><button class="btn primary" type="button" id="rRes">Resume</button></div>`);
+    $('#rRes').onclick=()=>{ S=Object.assign(fresh(),saved); S.dirty=false; closeModal(); renderAll(); toast('Resumed where you left off.'); };
+    $('#rNew').onclick=()=>{ try{localStorage.removeItem(KEY);}catch(e){} closeModal(); };
+  }
+})();
+</script>
+</body>
+</html>
